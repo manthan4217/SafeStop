@@ -10,8 +10,10 @@ app = create_app()
 def init_db_command():
     """Clear existing data and create all database tables."""
     with app.app_context():
+        # Do not drop tables in production
+        # db.drop_all()
         db.create_all()
-        print("Database tables created successfully.")
+        print("Database tables created/verified successfully.")
 
 @app.cli.command("seed-db")
 def seed_db_command():
