@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Route Management — SafeRide AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm mb-1"><i class="fa-solid fa-arrow-left me-1"></i> Dashboard</a>
+            <h3 class="fw-bold text-white mb-0"><i class="fa-solid fa-route text-warning me-2"></i> Transport Route Directory</h3>
+        </div>
+        <button type="button" class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addRouteModal">
+            <i class="fa-solid fa-plus me-1"></i> Create New Route
+        </button>
+    </div>
+
+    <div class="row g-4">
+        {% for r in routes %}
+        <div class="col-md-6">
+            <div class="glass-card p-4">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h4 class="fw-bold text-white mb-0">{{ r.name }}</h4>
+                    <span class="badge bg-success">ACTIVE</span>
+                </div>
+                <p class="text-muted small mb-3">{{ r.description }}</p>
+
+                <div class="row g-2 text-white-50 small mb-3">
+                    <div class="col-6">
+                        <div class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+                            <span class="text-muted">Total Distance:</span>
+                            <div class="fw-bold text-white fs-6">{{ r.distance_km }} km</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+                            <span class="text-muted">Estimated Duration:</span>
+                            <div class="fw-bold text-white fs-6">{{ r.estimated_duration_mins }} mins</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
+                    <h6 class="fw-bold text-white mb-0"><i class="fa-solid fa-location-dot text-danger me-1"></i> Sequential Stops</h6>
+                    <button type="button" class="btn btn-xs btn-outline-info py-0 px-2" data-bs-toggle="modal" data-bs-target="#addStopModal{{ r.id }}">
+                        <i class="fa-solid fa-plus me-1"></i> Add Stop
+                    </button>
+                </div>
+                <div class="list-group list-group-flush bg-transparent">
+                    {% for stop in r.stops.all() | sort(attribute='sequence_order') %}
+                    <div class="list-group-item bg-transparent text-white border-secondary border-opacity-25 px-0 py-2 d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge bg-primary me-2">{{ stop.sequence_order }}</span>
+                            <span class="fw-semibold">{{ stop.stop_name }}</span>
+                        </div>
+                        <span class="text-muted small">Pickup: {{ stop.scheduled_pickup_time }}</span>
+                    </div>
+                    {% else %}
+                    <div class="text-muted small">No stops defined.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Stop Modal per Route -->
+        <div class="modal fade" id="addStopModal{{ r.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content glass-card text-white border-secondary">
+                    <div class="modal-header border-secondary">
+                        <h5 class="modal-title fw-bold"><i class="fa-solid fa-location-dot text-info me-2"></i> Add Stop to {{ r.name }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="POST" action="{{ url_for('admin.stop_add') }}">
+                        <div class="modal-body">
+                            <input type="hidden" name="route_id" value="{{ r.id }}">
+                            <div class="mb-3">
+                                <label for="stop_name_{{ r.id }}" class="form-label text-white-50 small fw-semibold">Stop Name</label>
+                                <input type="text" id="stop_name_{{ r.id }}" name="stop_name" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Stop 4: Metro Junction" autocomplete="off" required>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label for="sequence_order_{{ r.id }}" class="form-label text-white-50 small fw-semibold">Sequence Order</label>
+                                    <input type="number" id="sequence_order_{{ r.id }}" name="sequence_order" class="form-control bg-dark text-white border-secondary" value="{{ r.stops.count() + 1 }}" autocomplete="off" required>
+                                </div>
+                                <div class="col-6">
+                                    <label for="pickup_time_{{ r.id }}" class="form-label text-white-50 small fw-semibold">Pickup Time</label>
+                                    <input type="text" id="pickup_time_{{ r.id }}" name="pickup_time" class="form-control bg-dark text-white border-secondary" value="07:35 AM" autocomplete="off">
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label for="latitude_{{ r.id }}" class="form-label text-white-50 small fw-semibold">Latitude</label>
+                                    <input type="number" step="0.0001" id="latitude_{{ r.id }}" name="latitude" class="form-control bg-dark text-white border-secondary" value="19.0800" autocomplete="off" required>
+                                </div>
+                                <div class="col-6">
+                                    <label for="longitude_{{ r.id }}" class="form-label text-white-50 small fw-semibold">Longitude</label>
+                                    <input type="number" step="0.0001" id="longitude_{{ r.id }}" name="longitude" class="form-control bg-dark text-white border-secondary" value="72.8800" autocomplete="off" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-secondary">
+                            <button type="submit" class="btn btn-info fw-bold px-4">Add Stop to Route</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Create Route Modal -->
+<div class="modal fade" id="addRouteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-route text-warning me-2"></i> Create Transport Route</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.route_add') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="route_name_input" class="form-label text-white-50 small fw-semibold">Route Name</label>
+                        <input type="text" id="route_name_input" name="name" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Route C - Central Ring" autocomplete="off" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="route_desc_input" class="form-label text-white-50 small fw-semibold">Description</label>
+                        <textarea id="route_desc_input" name="description" class="form-control bg-dark text-white border-secondary" rows="2" placeholder="Suburbs covered..." autocomplete="off"></textarea>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label for="route_dist_input" class="form-label text-white-50 small fw-semibold">Distance (km)</label>
+                            <input type="number" step="0.1" id="route_dist_input" name="distance_km" class="form-control bg-dark text-white border-secondary" value="15.0" autocomplete="off" required>
+                        </div>
+                        <div class="col-6">
+                            <label for="route_dur_input" class="form-label text-white-50 small fw-semibold">Planned Duration (mins)</label>
+                            <input type="number" id="route_dur_input" name="duration_mins" class="form-control bg-dark text-white border-secondary" value="45" autocomplete="off" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="submit" class="btn btn-primary-custom fw-bold px-4">Create Route</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

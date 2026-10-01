@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}AI Face Verification — SafeRide AI{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <a href="{{ url_for('driver.dashboard') }}" class="btn btn-outline-secondary btn-sm mb-1"><i class="fa-solid fa-arrow-left me-1"></i> Console</a>
+            <h4 class="fw-bold text-white mb-0"><i class="fa-solid fa-camera text-success me-2"></i> Driver AI Face Verification</h4>
+        </div>
+        <span class="badge bg-success bg-opacity-25 border border-success text-success px-3 py-2">
+            Trip: {{ trip.bus.bus_code }}
+        </span>
+    </div>
+
+    <!-- Camera Feed Container -->
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-5">
+            <!-- Scan Status Result Display Box -->
+            <div id="scan-result-card" class="glass-card p-3 mb-3 text-center border-info">
+                <div class="h6 text-info mb-1"><i class="fa-solid fa-expand me-2"></i> Align Student Face</div>
+                <div class="text-muted small">Position student inside circle guide and tap Scan</div>
+            </div>
+
+            <!-- Video Frame & Canvas overlay -->
+            <div class="camera-container mb-3 position-relative">
+                <video id="video-feed" playsinline autoplay muted></video>
+                <canvas id="canvas-capture" class="d-none"></canvas>
+                <div class="scan-overlay-guide"></div>
+            </div>
+
+            <!-- Scan Action Buttons -->
+            <div class="d-grid gap-2 mb-4">
+                <button type="button" id="btn-scan" class="btn btn-primary-custom btn-lg py-3 fw-bold shadow">
+                    <i class="fa-solid fa-face-smile me-2"></i> SCAN & VERIFY STUDENT FACE
+                </button>
+                <button type="button" class="btn btn-outline-secondary text-white btn-sm" data-bs-toggle="modal" data-bs-target="#manualModal">
+                    <i class="fa-solid fa-keyboard me-1"></i> Manual Driver Verification Fallback
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manual Verification Modal -->
+<div class="modal fade" id="manualModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-check text-info me-2"></i> Manual Driver Verification</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('driver.manual_verify') }}">
+                <div class="modal-body">
+                    <input type="hidden" name="trip_id" value="{{ trip.id }}">
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small fw-semibold">Select Student</label>
+                        <select name="student_id" class="form-select bg-dark text-white border-secondary">
+                            <option value="">-- Choose Student --</option>
+                            {% for st in students if st.id not in boarded_ids %}
+                            <option value="{{ st.id }}">{{ st.full_name }} ({{ st.roll_number }}){% if absent_map and st.id in absent_map %} — [ 🤒 ON LEAVE: {{ absent_map[st.id].reason }} ]{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small fw-semibold">Reason for Manual Verification</label>
+                        <input type="text" name="reason" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Low lighting / cap worn" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="submit" class="btn btn-success fw-bold px-4">Confirm Attendance</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/driver_camera.js') }}"></script>
+<div id="camera-config" data-trip-id="{{ trip.id }}"></div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const tripId = parseInt(document.getElementById('camera-config').dataset.tripId, 10);
+    const scanner = new DriverCameraScanner('video-feed', 'canvas-capture', tripId);
+    scanner.startCamera();
+
+    document.getElementById('btn-scan').addEventListener('click', function() {
+        scanner.scanAndVerify();
+    });
+});
+</script>
+{% endblock %}

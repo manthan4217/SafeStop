@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+{% block title %}School Transport Control Center — SafeRide AI{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <!-- Header Banner -->
+    <div class="glass-card p-4 mb-4">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div>
+                <span class="badge bg-primary bg-opacity-25 border border-primary text-info px-3 py-1 mb-1">CENTRAL TRANSPORTATION MANAGEMENT PLATFORM</span>
+                <h2 class="fw-bold text-white mb-0"><i class="fa-solid fa-gauge-high text-info me-2"></i> School Master Operations Dashboard</h2>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('admin.alerts') }}" class="btn btn-outline-warning">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i> Alert Center ({{ active_alerts|length }})
+                </a>
+                <a href="{{ url_for('admin.analytics') }}" class="btn btn-primary-custom">
+                    <i class="fa-solid fa-brain me-1"></i> AI Risk Analytics
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- SOS Emergency Alert Overlay (If Active) -->
+    {% if active_sos %}
+        {% for sos in active_sos %}
+        <div class="glass-card p-4 mb-4 border-danger bg-danger bg-opacity-20 animate__animated animate__flash animate__infinite">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div>
+                    <h3 class="fw-bold text-danger mb-1"><i class="fa-solid fa-triangle-exclamation me-2"></i> CRITICAL EMERGENCY SOS ALERT DETECTED</h3>
+                    <div class="text-white fs-5">{{ sos.description }}</div>
+                    <div class="text-white-50 small mt-1">Bus: <b>{{ sos.bus.bus_code if sos.bus else 'N/A' }}</b> | Time: <b>{{ sos.created_at.strftime('%I:%M %p') }}</b></div>
+                </div>
+                <div>
+                    <form method="POST" action="{{ url_for('admin.resolve_alert', alert_id=sos.id) }}">
+                        <button type="submit" class="btn btn-danger btn-lg fw-bold px-4">
+                            <i class="fa-solid fa-check-double me-1"></i> Mark Resolved & Acknowledge
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Top KPI Cards Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="glass-card kpi-card p-3">
+                <div class="kpi-value text-info">{{ total_students }}</div>
+                <div class="kpi-label">Total Registered Students</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="glass-card kpi-card success p-3">
+                <div class="kpi-value text-success">{{ active_buses }} / {{ total_buses }}</div>
+                <div class="kpi-label">Active Bus Fleet</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="glass-card kpi-card warning p-3">
+                <div class="kpi-value text-warning">{{ running_trips_count }}</div>
+                <div class="kpi-label">Running Bus Trips</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="glass-card kpi-card danger p-3">
+                <div class="kpi-value text-danger">{{ active_alerts|length }}</div>
+                <div class="kpi-label">Active Safety Alerts</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Live Bus Fleet Map (Main Column) -->
+        <div class="col-lg-8">
+            <div class="glass-card p-3 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+                    <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-map text-info me-2"></i> Real-Time Bus Fleet Interactive Map</h5>
+                    <span class="badge bg-success"><i class="fa-solid fa-circle me-1 small"></i> Live Geo Tracking</span>
+                </div>
+                <div id="map"></div>
+            </div>
+
+            <!-- Active Running Trips Table -->
+            <div class="glass-card p-4">
+                <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-bus text-warning me-2"></i> Active Bus Trips</h5>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle mb-0">
+                        <thead class="table-dark text-muted border-secondary">
+                            <tr>
+                                <th>Bus</th>
+                                <th>Driver</th>
+                                <th>Route</th>
+                                <th>Trip Type</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in running_trips %}
+                            <tr>
+                                <td class="fw-bold text-info"><i class="fa-solid fa-bus me-1"></i> {{ t.bus.bus_code }}</td>
+                                <td class="text-white">{{ t.driver.full_name }}</td>
+                                <td class="text-muted small">{{ t.route.name if t.route else 'N/A' }}</td>
+                                <td><span class="badge bg-primary">{{ t.trip_type.replace('_', ' ') }}</span></td>
+                                <td><span class="badge badge-verified">IN PROGRESS</span></td>
+                                <td>
+                                    <a href="{{ url_for('admin.bus_detail', bus_id=t.bus_id) }}" class="btn btn-sm btn-outline-info">
+                                        <i class="fa-solid fa-eye me-1"></i> Monitor Bus
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="6" class="text-center text-muted py-3">No bus trips currently in progress.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Feed Sidebar -->
+        <div class="col-lg-4">
+            <!-- Active Safety Alerts Panel -->
+            <div class="glass-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-bell text-danger me-2"></i> Safety Alerts Feed</h5>
+                    <a href="{{ url_for('admin.alerts') }}" class="btn btn-sm btn-outline-secondary text-white">View All</a>
+                </div>
+                <div class="list-group list-group-flush bg-transparent">
+                    {% for alt in active_alerts %}
+                    <div class="list-group-item bg-transparent text-white border-secondary border-opacity-25 py-3 px-0">
+                        <div class="d-flex align-items-start gap-2">
+                            {% if alt.severity == 'CRITICAL' %}
+                                <i class="fa-solid fa-triangle-exclamation text-danger fs-4 mt-1"></i>
+                            {% else %}
+                                <i class="fa-solid fa-circle-exclamation text-warning fs-4 mt-1"></i>
+                            {% endif %}
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between">
+                                    <span class="badge bg-danger">{{ alt.alert_type }}</span>
+                                    <small class="text-muted">{{ alt.created_at.strftime('%I:%M %p') }}</small>
+                                </div>
+                                <div class="small text-white mt-1 fw-semibold">{{ alt.description }}</div>
+                                <div class="mt-2">
+                                    <form method="POST" action="{{ url_for('admin.resolve_alert', alert_id=alt.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-xs btn-outline-success btn-sm py-0 px-2">Resolve</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4">No active safety alerts.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Driver Safety & Telemetry Monitor Card -->
+            <div class="glass-card p-4 mb-4 border-warning">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-heart-pulse text-warning me-2"></i> Driver Safety Telemetry</h5>
+                    <span class="badge bg-warning bg-opacity-25 border border-warning text-warning px-2.5 py-1 fw-bold">
+                        Fleet Score: {{ avg_safety_score }}%
+                    </span>
+                </div>
+
+                <div class="list-group list-group-flush bg-transparent">
+                    {% for dt in driver_telemetries %}
+                    <div class="list-group-item bg-transparent text-white border-secondary border-opacity-25 py-2 px-0">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <div>
+                                <span class="fw-bold text-white fs-6">{{ dt.driver_name }}</span>
+                                <span class="text-muted small ms-1">({{ dt.bus_code }})</span>
+                            </div>
+                            {% if dt.fatigue_level == 'CRITICAL_DROWSINESS' %}
+                                <span class="badge bg-danger text-white"><i class="fa-solid fa-triangle-exclamation me-1"></i> CRITICAL FATIGUE</span>
+                            {% elif dt.fatigue_level == 'MILD_DROWSINESS' %}
+                                <span class="badge bg-warning text-dark"><i class="fa-solid fa-eye-slash me-1"></i> Mild Drowsiness</span>
+                            {% else %}
+                                <span class="badge bg-success bg-opacity-25 text-success border border-success"><i class="fa-solid fa-check me-1"></i> Normal</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex align-items-center justify-content-between small text-muted mb-1">
+                            <span>Speed: <b class="{% if dt.overspeed %}text-danger fw-bold{% else %}text-info{% endif %}">{{ dt.speed_kph }} km/h</b></span>
+                            <span>Score: <b class="{% if dt.safety_score < 70 %}text-danger{% elif dt.safety_score < 90 %}text-warning{% else %}text-success{% endif %}">{{ dt.safety_score }}%</b></span>
+                        </div>
+
+                        <div class="progress bg-dark" style="height: 6px;">
+                            <div class="progress-bar {% if dt.safety_score < 70 %}bg-danger{% elif dt.safety_score < 90 %}bg-warning{% else %}bg-success{% endif %}" role="progressbar" style="--bar-width: {{ dt.safety_score }}%; width: var(--bar-width);"></div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-3">No telemetry logs recorded.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Fleet Status Breakdown -->
+            <div class="glass-card p-4">
+                <h6 class="fw-bold text-white mb-3"><i class="fa-solid fa-chart-pie text-info me-2"></i> Fleet Status Overview</h6>
+                <div class="list-group list-group-flush bg-transparent">
+                    {% for b in buses %}
+                    <div class="list-group-item bg-transparent text-white border-secondary border-opacity-25 px-0 py-2 d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="fw-bold text-info me-2">{{ b.bus_code }}</span>
+                            <small class="text-muted">{{ b.registration_number }}</small>
+                        </div>
+                        <a href="{{ url_for('admin.bus_detail', bus_id=b.id) }}" class="btn btn-sm btn-outline-info py-0 px-2">View</a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/live_map.js') }}"></script>
+<script id="bus-map-data" type="application/json">
+  {{ bus_map_json|tojson|safe }}
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const busMapData = JSON.parse(document.getElementById('bus-map-data').textContent);
+    const tracker = new BusTrackerMap('map', 19.0760, 72.8777, 12);
+
+    busMapData.forEach(b => {
+        if (b.is_active && b.lat !== null && b.lng !== null) {
+            tracker.updateBusLocation(b.id, b.code, b.lat, b.lng, 25, b.status, false, '', true);
+        } else {
+            tracker.updateBusLocation(b.id, b.code, null, null, 0, 'INACTIVE', false, '', false);
+        }
+    });
+});
+</script>
+{% endblock %}

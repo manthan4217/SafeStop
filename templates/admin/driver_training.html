@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Driver Training Management — SafeRide AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <a href="{{ url_for('admin.drivers') }}" class="btn btn-outline-secondary btn-sm mb-1"><i class="fa-solid fa-arrow-left me-1"></i> Drivers List</a>
+            <h3 class="fw-bold text-white mb-0"><i class="fa-solid fa-graduation-cap text-info me-2"></i> Driver Safety & First-Aid Training Records</h3>
+        </div>
+        <button type="button" class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addTrainingModal">
+            <i class="fa-solid fa-plus me-1"></i> Log Training Record
+        </button>
+    </div>
+
+    <div class="glass-card p-4">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0">
+                <thead class="table-dark text-muted border-secondary">
+                    <tr>
+                        <th>Driver Name</th>
+                        <th>Training Module</th>
+                        <th>Completion Date</th>
+                        <th>Expiry Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in trainings %}
+                    <tr>
+                        <td class="fw-bold text-white">{{ t.driver.full_name }}</td>
+                        <td class="text-info fw-semibold">{{ t.training_name }}</td>
+                        <td class="text-white-50">{{ t.training_date }}</td>
+                        <td class="text-muted small">{{ t.expiry_date or 'N/A' }}</td>
+                        <td>
+                            {% if t.status == 'COMPLETED' %}
+                                <span class="badge badge-verified"><i class="fa-solid fa-check me-1"></i> COMPLETED</span>
+                            {% elif t.status == 'EXPIRED' %}
+                                <span class="badge bg-danger">EXPIRED</span>
+                            {% else %}
+                                <span class="badge badge-pending">PENDING</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-3">No training records logged.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Log Training Modal -->
+<div class="modal fade" id="addTrainingModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-graduation-cap text-info me-2"></i> Log Driver Training Certificate</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.add_driver_training') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="driver_id_select" class="form-label text-white-50 small fw-semibold">Select Driver</label>
+                        <select id="driver_id_select" name="driver_id" class="form-select bg-dark text-white border-secondary" autocomplete="off" required>
+                            {% for d in drivers %}
+                            <option value="{{ d.id }}">{{ d.full_name }} ({{ d.phone }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="training_name_select" class="form-label text-white-50 small fw-semibold">Training Module</label>
+                        <select id="training_name_select" name="training_name" class="form-select bg-dark text-white border-secondary" autocomplete="off" required>
+                            <option value="First Aid & Emergency Medical Care">First Aid & Emergency Medical Care</option>
+                            <option value="Child Safety & Prevention Protocols">Child Safety & Prevention Protocols</option>
+                            <option value="Defensive Driving & Heavy Vehicle Safety">Defensive Driving & Heavy Vehicle Safety</option>
+                            <option value="Emergency Response & Evacuation">Emergency Response & Evacuation</option>
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label for="training_date" class="form-label text-white-50 small fw-semibold">Completion Date</label>
+                            <input type="date" id="training_date" name="training_date" class="form-control bg-dark text-white border-secondary" autocomplete="off" required>
+                        </div>
+                        <div class="col-6">
+                            <label for="expiry_date" class="form-label text-white-50 small fw-semibold">Expiry Date</label>
+                            <input type="date" id="expiry_date" name="expiry_date" class="form-control bg-dark text-white border-secondary" autocomplete="off">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="submit" class="btn btn-primary-custom fw-bold px-4">Save Certificate Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

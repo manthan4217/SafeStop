@@ -1,0 +1,287 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f1f5f9;
+    --border-color: #e2e8f0;
+    --border-hover: #cbd5e1;
+    
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --secondary: #0284c7;
+    
+    --status-success: #059669;
+    --status-success-bg: #d1fae5;
+    --status-success-border: #a7f3d0;
+    
+    --status-warning: #d97706;
+    --status-warning-bg: #fef3c7;
+    --status-warning-border: #fde68a;
+    
+    --status-danger: #dc2626;
+    --status-danger-bg: #fee2e2;
+    --status-danger-border: #fca5a5;
+    
+    --status-info: #0284c7;
+    --status-info-bg: #e0f2fe;
+    --status-info-border: #bae6fd;
+    
+    --text-main: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    
+    --radius-lg: 12px;
+    --radius-md: 8px;
+    --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.04);
+    --shadow-hover: 0 4px 20px rgba(15, 23, 42, 0.12);
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Professional Enterprise Cards */
+.glass-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    transition: all 0.2s ease-in-out;
+}
+
+.glass-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--shadow-hover);
+}
+
+/* Executive Navigation Bar */
+.navbar-custom {
+    background: #0f172a !important;
+    border-bottom: 1px solid #1e293b;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.navbar-brand-title {
+    font-weight: 700;
+    font-size: 1.35rem;
+    letter-spacing: -0.4px;
+    color: #ffffff !important;
+}
+
+/* Professional Status Badges */
+.badge-verified {
+    background-color: var(--status-success-bg) !important;
+    color: #065f46 !important;
+    border: 1px solid var(--status-success-border);
+    font-weight: 600;
+    padding: 0.35em 0.8em;
+    border-radius: 20px;
+    font-size: 0.82rem;
+}
+
+.badge-pending {
+    background-color: var(--status-warning-bg) !important;
+    color: #92400e !important;
+    border: 1px solid var(--status-warning-border);
+    font-weight: 600;
+    padding: 0.35em 0.8em;
+    border-radius: 20px;
+    font-size: 0.82rem;
+}
+
+.badge-wrongbus {
+    background-color: var(--status-danger-bg) !important;
+    color: #991b1b !important;
+    border: 1px solid var(--status-danger-border);
+    font-weight: 700;
+    padding: 0.35em 0.8em;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+    0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.3); }
+    70% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+/* Buttons */
+.btn-primary-custom {
+    background-color: var(--primary) !important;
+    color: #ffffff !important;
+    border: 1px solid var(--primary-hover);
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    padding: 0.55rem 1.3rem;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    transition: all 0.15s ease;
+}
+
+.btn-primary-custom:hover {
+    background-color: var(--primary-hover) !important;
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+    color: #ffffff !important;
+}
+
+.btn-sos {
+    background-color: #dc2626 !important;
+    color: #ffffff !important;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border: 1px solid #b91c1c;
+    border-radius: var(--radius-md);
+    padding: 0.65rem 1.4rem;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+/* Map Container */
+#map {
+    height: 480px;
+    width: 100%;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-color);
+}
+
+/* Driver Scanner Feed */
+.camera-container {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 2px solid var(--primary);
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+}
+
+.camera-container video, .camera-container canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.scan-overlay-guide {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 220px;
+    height: 260px;
+    border: 2px dashed rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+/* KPI Metric Cards */
+.kpi-card {
+    padding: 1.25rem 1.5rem;
+    border-left: 4px solid var(--primary);
+    background: #ffffff !important;
+}
+
+.kpi-card.danger {
+    border-left-color: var(--status-danger);
+}
+
+.kpi-card.warning {
+    border-left-color: var(--status-warning);
+}
+
+.kpi-card.success {
+    border-left-color: var(--status-success);
+}
+
+.kpi-value {
+    font-size: 2.1rem;
+    font-weight: 700;
+    color: var(--text-main) !important;
+    line-height: 1.2;
+}
+
+.kpi-label {
+    font-size: 0.8rem;
+    color: var(--text-muted) !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    margin-top: 0.25rem;
+}
+
+/* Utility overrides for crisp corporate light theme */
+.text-white {
+    color: #0f172a !important;
+}
+
+.text-white-50 {
+    color: #475569 !important;
+}
+
+.bg-dark {
+    background-color: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+.border-secondary {
+    border-color: #e2e8f0 !important;
+}
+
+.table-dark {
+    --bs-table-bg: #ffffff;
+    --bs-table-color: #0f172a;
+    --bs-table-border-color: #e2e8f0;
+    --bs-table-hover-bg: #f8fafc;
+    color: #0f172a !important;
+}
+
+.table-dark thead th {
+    background-color: #f1f5f9 !important;
+    color: #475569 !important;
+    font-weight: 600;
+    border-bottom: 1px solid #cbd5e1;
+}
+
+.modal-content.glass-card {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+}
+
+.form-control.bg-dark, .form-select.bg-dark {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+.form-control.bg-dark:focus, .form-select.bg-dark:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+}
+
+/* Footer */
+footer {
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0 !important;
+    color: #64748b !important;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+    width: 7px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}

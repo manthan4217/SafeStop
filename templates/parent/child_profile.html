@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}{{ student.full_name }} — Child Profile — SafeRide AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <a href="{{ url_for('parent.dashboard') }}" class="btn btn-outline-secondary btn-sm mb-2"><i class="fa-solid fa-arrow-left me-1"></i> Dashboard</a>
+            <h2 class="fw-bold text-white mb-0"><i class="fa-solid fa-user-graduate text-info me-2"></i> Student Transportation Profile</h2>
+        </div>
+        <a href="{{ url_for('parent.live_tracking', student_id=student.id) }}" class="btn btn-primary-custom">
+            <i class="fa-solid fa-map-location-dot me-1"></i> Track Live Bus
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <!-- Student Details Card -->
+        <div class="col-md-5 col-lg-4">
+            <div class="glass-card p-4 text-center">
+                <img src="{{ student.to_dict()['photo_url'] }}" alt="{{ student.full_name }}" class="rounded-circle border border-info border-3 mb-3 shadow" style="width: 120px; height: 120px; object-fit: cover;">
+                <h3 class="fw-bold text-white mb-1">{{ student.full_name }}</h3>
+                <div class="badge bg-primary px-3 py-1 mb-3">{{ student.roll_number }}</div>
+
+                <div class="text-start bg-dark p-3 rounded border border-secondary border-opacity-25 text-white-50 small">
+                    <div class="mb-2"><strong class="text-white">Grade & Section:</strong> {{ student.grade_section or 'Grade 5-A' }}</div>
+                    <div class="mb-2"><strong class="text-white">Parent / Guardian:</strong> {{ student.parent.user.full_name if student.parent else 'N/A' }}</div>
+                    <div class="mb-2"><strong class="text-white">Emergency Phone:</strong> {{ student.parent.user.phone if student.parent else 'N/A' }}</div>
+                    <div><strong class="text-white">AI Face Status:</strong> <span class="badge bg-success">PROFILE REGISTERED</span></div>
+                </div>
+            </div>
+
+            <!-- Assigned Bus & Driver Info -->
+            <div class="glass-card p-4 mt-4">
+                <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-bus text-info me-2"></i> Assigned Vehicle & Driver</h5>
+                {% if bus %}
+                <div class="mb-3">
+                    <div class="fw-bold text-white fs-5">{{ bus.bus_code }}</div>
+                    <div class="text-muted small">Registration: {{ bus.registration_number }}</div>
+                </div>
+
+                {% if driver %}
+                <div class="p-3 rounded bg-dark border border-secondary border-opacity-25 d-flex align-items-center gap-3">
+                    <div class="p-2 rounded-circle bg-info bg-opacity-10 text-info fs-3"><i class="fa-solid fa-user-gear"></i></div>
+                    <div>
+                        <div class="fw-bold text-white">{{ driver.full_name }}</div>
+                        <div class="text-muted small"><i class="fa-solid fa-phone me-1"></i> {{ driver.phone }}</div>
+                        <div class="badge bg-success bg-opacity-25 text-success small mt-1">Verified License</div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-muted small">No driver currently assigned to bus.</div>
+                {% endif %}
+                {% else %}
+                <div class="text-muted small">No bus currently assigned.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Route & Attendance History -->
+        <div class="col-md-7 col-lg-8">
+            <!-- Pickup & Drop Stops -->
+            <div class="glass-card p-4 mb-4">
+                <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-route text-warning me-2"></i> Assigned Route Stops</h5>
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded bg-dark border border-success border-opacity-25">
+                            <div class="text-success small fw-semibold"><i class="fa-solid fa-circle-dot me-1"></i> Morning Pickup Stop</div>
+                            <div class="fw-bold text-white mt-1">{{ student.pickup_stop.stop_name if student.pickup_stop else 'Registered Stop 1' }}</div>
+                            <div class="text-muted small">Scheduled: {{ student.pickup_stop.scheduled_pickup_time if student.pickup_stop else '07:30 AM' }}</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded bg-dark border border-danger border-opacity-25">
+                            <div class="text-danger small fw-semibold"><i class="fa-solid fa-location-dot me-1"></i> Evening Drop Stop</div>
+                            <div class="fw-bold text-white mt-1">{{ student.drop_stop.stop_name if student.drop_stop else 'Registered Stop 1' }}</div>
+                            <div class="text-muted small">Scheduled: {{ student.drop_stop.scheduled_drop_time if student.drop_stop else '03:45 PM' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historical Attendance Log Table -->
+            <div class="glass-card p-4">
+                <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-clipboard-check text-success me-2"></i> Recent Attendance Records</h5>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle mb-0">
+                        <thead class="table-dark text-muted border-secondary">
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Bus</th>
+                                <th>Verification Status</th>
+                                <th>Details / Method</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for att in attendances %}
+                            <tr>
+                                <td class="text-white">{{ att.verification_time.strftime('%b %d, %Y - %I:%M %p') }}</td>
+                                <td class="fw-bold text-info">{{ att.trip.bus.bus_code if att.trip and att.trip.bus else 'N/A' }}</td>
+                                <td>
+                                    {% if att.verification_status == 'VERIFIED' %}
+                                        <span class="badge badge-verified"><i class="fa-solid fa-check me-1"></i> VERIFIED</span>
+                                    {% elif att.verification_status == 'WRONG_BUS' %}
+                                        <span class="badge badge-wrongbus"><i class="fa-solid fa-triangle-exclamation me-1"></i> WRONG BUS</span>
+                                    {% else %}
+                                        <span class="badge bg-info text-dark">{{ att.verification_status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-muted small">{{ att.notes or 'AI Verification' }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="4" class="text-center text-muted py-3">No attendance records found yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

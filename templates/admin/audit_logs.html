@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}System Audit Trail — SafeRide AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm mb-1"><i class="fa-solid fa-arrow-left me-1"></i> Dashboard</a>
+            <h3 class="fw-bold text-white mb-0"><i class="fa-solid fa-list-check text-info me-2"></i> System Security Audit Logs</h3>
+        </div>
+    </div>
+
+    <div class="glass-card p-4">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0">
+                <thead class="table-dark text-muted border-secondary">
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>IP Address</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td class="text-white-50 small">{{ log.timestamp.strftime('%b %d, %Y - %I:%M %p') }}</td>
+                        <td class="fw-bold text-white">{{ log.user.full_name if log.user else 'System' }}</td>
+                        <td><span class="badge bg-primary">{{ log.action }}</span></td>
+                        <td class="text-muted small">{{ log.ip_address or '127.0.0.1' }}</td>
+                        <td class="text-white-50 small">{{ log.details }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">No audit logs recorded.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

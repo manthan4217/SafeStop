@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+{% block title %}Parent Dashboard — SafeRide AI{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <!-- Parent Welcome Banner -->
+    <div class="glass-card p-4 mb-4 bg-gradient">
+        <div class="row align-items-center">
+            <div class="col-md-7">
+                <h2 class="fw-bold text-white mb-1"><i class="fa-solid fa-house-user text-info me-2"></i> Welcome, {{ parent.user.full_name }}</h2>
+                <p class="text-muted mb-0"><i class="fa-solid fa-phone me-1 text-info"></i> {{ parent.user.phone or 'Phone Not Set' }} • <i class="fa-solid fa-location-dot me-1 text-warning"></i> {{ parent.address or 'Address Not Set' }}</p>
+            </div>
+            <div class="col-md-5 text-md-end mt-3 mt-md-0 d-flex justify-content-md-end gap-2 flex-wrap">
+                <button class="btn btn-outline-warning btn-sm text-warning fw-semibold" data-bs-toggle="modal" data-bs-target="#proximityModal">
+                    <i class="fa-solid fa-location-crosshairs me-1"></i> Proximity Radius ({{ parent.proximity_radius_meters or 500 }}m)
+                </button>
+                <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                    <i class="fa-solid fa-user-pen me-1"></i> Edit Profile
+                </button>
+                <button class="btn btn-warning btn-sm text-dark fw-semibold" data-bs-toggle="modal" data-bs-target="#addAbsenceModal">
+                    <i class="fa-solid fa-bed-pulse me-1"></i> Submit Absence Request
+                </button>
+                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addChildModal">
+                    <i class="fa-solid fa-child me-1"></i> Register Child
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Absence Requests Banner -->
+    {% if active_absences %}
+        {% for ab in active_absences %}
+        <div class="glass-card p-3 mb-4 border-warning bg-warning bg-opacity-10">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div>
+                    <span class="badge bg-warning text-dark fw-bold me-2"><i class="fa-solid fa-bed-pulse me-1"></i> MARKED ABSENT / ON LEAVE</span>
+                    <span class="text-white fw-bold fs-6">{{ ab.student.full_name }}</span>
+                    <span class="badge bg-dark text-info ms-2">{{ ab.absence_date }}</span>
+                    <span class="text-white-50 small ms-2">({{ ab.session_type.replace('_', ' ') }})</span>
+                    <div class="text-white-50 small mt-1"><i class="fa-solid fa-comment me-1 text-warning"></i> Reason: <i>"{{ ab.reason }}"</i> • Driver roster updated</div>
+                </div>
+                <div>
+                    <form method="POST" action="{{ url_for('parent.cancel_absence_request', request_id=ab.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill">
+                            <i class="fa-solid fa-xmark me-1"></i> Cancel Leave
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Safe Drop Confirmation Banner (If Pending) -->
+    {% if pending_safe_drops %}
+        {% for sd in pending_safe_drops %}
+        <div class="glass-card p-4 mb-4 border-warning bg-warning bg-opacity-10 animate__animated animate__pulse animate__infinite">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div>
+                    <div class="h5 text-warning fw-bold mb-1">
+                        <i class="fa-solid fa-location-dot me-2 fs-4"></i> Bus Reached Drop Stop: Safe Drop Confirmation Pending
+                    </div>
+                    <div class="text-white">
+                        Bus <b>{{ sd.trip.bus.bus_code if sd.trip and sd.trip.bus else 'Assigned Bus' }}</b> has arrived at <b>{{ sd.stop.stop_name }}</b> for child <b>{{ sd.student.full_name }}</b>.
+                    </div>
+                    <div class="text-muted small mt-1">Arrival Time: {{ sd.bus_arrival_time.strftime('%I:%M %p') }}</div>
+                </div>
+                <div>
+                    <form method="POST" action="{{ url_for('parent.confirm_safe_drop', confirmation_id=sd.id) }}">
+                        <button type="submit" class="btn btn-success btn-lg fw-bold px-4 rounded-pill shadow">
+                            <i class="fa-solid fa-circle-check me-2"></i> [ Child Received ] — Confirm Safe Drop
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Linked Children Cards -->
+    <div class="row g-4 mb-4">
+        {% for child in children %}
+        <div class="col-lg-6 col-xl-4">
+            <div class="glass-card p-4 h-100 position-relative overflow-hidden">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <img src="{{ child.to_dict()['photo_url'] }}" alt="{{ child.full_name }}" class="rounded-circle border border-info border-2" style="width: 64px; height: 64px; object-fit: cover;">
+                    <div>
+                        <h4 class="fw-bold text-white mb-0">{{ child.full_name }}</h4>
+                        <span class="badge bg-secondary text-info">{{ child.roll_number }}</span>
+                        <span class="text-muted small ms-2">{{ child.grade_section or 'Grade 5' }}</span>
+                    </div>
+                </div>
+
+                <hr class="border-secondary border-opacity-25">
+
+                <!-- Assigned Bus Info -->
+                <div class="row g-2 mb-3 text-white-50 small">
+                    <div class="col-6">
+                        <div class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+                            <div class="text-muted">Assigned Bus</div>
+                            <div class="fw-bold text-white fs-6"><i class="fa-solid fa-bus text-info me-1"></i> {{ child.assigned_bus.bus_code if child.assigned_bus else 'Unassigned' }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+                            <div class="text-muted">Assigned Route</div>
+                            <div class="fw-bold text-white fs-6"><i class="fa-solid fa-route text-warning me-1"></i> {{ child.assigned_route.name if child.assigned_route else 'Unassigned' }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Proximity Geo-Fence Banner -->
+                {% if proximity_map and child.id in proximity_map %}
+                    {% set pinfo = proximity_map[child.id] %}
+                    <div class="p-3 rounded bg-dark border {% if pinfo.in_proximity %}border-success bg-success bg-opacity-10 animate__animated animate__pulse animate__infinite{% else %}border-info border-opacity-50{% endif %} mb-3">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="fw-bold fs-6 {% if pinfo.in_proximity %}text-success{% else %}text-info{% endif %}">
+                                <i class="fa-solid fa-location-crosshairs me-1"></i>
+                                {% if pinfo.in_proximity %}PROXIMITY ALERT: BUS NEARBY!{% else %}Bus En Route to Stop{% endif %}
+                            </span>
+                            <span class="badge {% if pinfo.in_proximity %}bg-success text-white{% else %}bg-info text-dark{% endif %} fw-bold">
+                                ETA ~{{ pinfo.eta_mins }} min{% if pinfo.eta_mins > 1 %}s{% endif %}
+                            </span>
+                        </div>
+                        <div class="text-white small">
+                            Bus <b>{{ pinfo.bus_code }}</b> is <b>{{ pinfo.distance_m }}m</b> away from <b>{{ pinfo.stop_name }}</b>.
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Pickup & Drop Stops -->
+                <div class="mb-3 text-white-50 small">
+                    <div><i class="fa-solid fa-circle-dot text-success me-2"></i> Pickup Stop: <b>{{ child.pickup_stop.stop_name if child.pickup_stop else 'Registered Stop 1' }}</b></div>
+                    <div class="mt-1"><i class="fa-solid fa-location-dot text-danger me-2"></i> Drop Stop: <b>{{ child.drop_stop.stop_name if child.drop_stop else 'Registered Stop 1' }}</b></div>
+                </div>
+
+                <!-- Attendance Status Badges -->
+                <div class="p-3 rounded bg-dark border border-secondary border-opacity-25 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small text-muted fw-semibold">Today's Journey Status</span>
+                        <span class="badge badge-verified">LIVE</span>
+                    </div>
+
+                    {% set latest_att = child.attendances.all() | sort(attribute='verification_time', reverse=True) | first %}
+                    {% if latest_att %}
+                        <div class="d-flex align-items-center gap-2 text-white">
+                            {% if latest_att.verification_status == 'VERIFIED' %}
+                                <i class="fa-solid fa-circle-check text-success fs-5"></i>
+                                <div>
+                                    <div class="fw-bold text-success">Verified Boarded</div>
+                                    <div class="small text-muted">{{ latest_att.verification_time.strftime('%I:%M %p') }} • {{ latest_att.notes }}</div>
+                                </div>
+                            {% elif latest_att.verification_status == 'WRONG_BUS' %}
+                                <i class="fa-solid fa-triangle-exclamation text-danger fs-5"></i>
+                                <div>
+                                    <div class="fw-bold text-danger">WRONG BUS DETECTED</div>
+                                    <div class="small text-muted">Alert generated for school transport office</div>
+                                </div>
+                            {% else %}
+                                <i class="fa-solid fa-user-check text-info fs-5"></i>
+                                <div>
+                                    <div class="fw-bold text-info">{{ latest_att.verification_status }}</div>
+                                    <div class="small text-muted">{{ latest_att.verification_time.strftime('%I:%M %p') }}</div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="text-muted small"><i class="fa-regular fa-clock me-1"></i> Awaiting bus departure attendance verification</div>
+                    {% endif %}
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('parent.live_tracking', student_id=child.id) }}" class="btn btn-primary-custom py-2">
+                        <i class="fa-solid fa-map-location-dot me-1"></i> Track Live Bus & ETA
+                    </a>
+                    <a href="{{ url_for('parent.child_profile', student_id=child.id) }}" class="btn btn-outline-secondary text-white py-2">
+                        <i class="fa-solid fa-circle-info me-1"></i> Child Profile & History
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12 text-center py-5 text-muted">
+            <i class="fa-solid fa-child-slash fs-1 mb-3"></i>
+            <h5>No linked students found for your account.</h5>
+            <p>Please contact school administration to link your child's roll number.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Recent Notifications Panel -->
+    <div class="glass-card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-bell text-warning me-2"></i> Safety & Transportation Alerts</h5>
+            <a href="{{ url_for('parent.notifications') }}" class="btn btn-sm btn-outline-info">View All History</a>
+        </div>
+        <div class="list-group list-group-flush bg-transparent">
+            {% for n in notifications %}
+            <div class="list-group-item bg-transparent text-white border-secondary border-opacity-25 px-0 py-3">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="p-2 rounded bg-dark border border-secondary border-opacity-25 text-info">
+                        {% if n.category == 'BOARDING' %}
+                            <i class="fa-solid fa-bus text-success fs-5"></i>
+                        {% elif n.category == 'WRONG_BUS' or n.category == 'EMERGENCY' %}
+                            <i class="fa-solid fa-triangle-exclamation text-danger fs-5"></i>
+                        {% elif n.category == 'SAFE_DROP' %}
+                            <i class="fa-solid fa-location-dot text-warning fs-5"></i>
+                        {% else %}
+                            <i class="fa-solid fa-circle-info text-info fs-5"></i>
+                        {% endif %}
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between">
+                            <h6 class="fw-bold mb-1">{{ n.title }}</h6>
+                            <small class="text-muted">{{ n.created_at.strftime('%I:%M %p') }}</small>
+                        </div>
+                        <p class="text-muted small mb-0">{{ n.message }}</p>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-muted py-3 text-center">No recent alerts recorded.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-pen text-info me-2"></i> Update Parent Profile</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('parent.update_profile') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small fw-semibold">Phone Number</label>
+                        <input type="text" name="phone" class="form-control bg-dark text-white border-secondary" value="{{ parent.user.phone or '' }}" placeholder="+91 98201 00000" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label text-white-50 small fw-semibold">Relationship</label>
+                            <select name="relationship" class="form-select bg-dark text-white border-secondary">
+                                <option value="Father" {% if parent.relationship == 'Father' %}selected{% endif %}>Father</option>
+                                <option value="Mother" {% if parent.relationship == 'Mother' %}selected{% endif %}>Mother</option>
+                                <option value="Guardian" {% if parent.relationship == 'Guardian' %}selected{% endif %}>Guardian</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-white-50 small fw-semibold">Emergency Contact</label>
+                            <input type="text" name="emergency_contact" class="form-control bg-dark text-white border-secondary" value="{{ parent.emergency_contact or '' }}" placeholder="+91 98201 00000">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small fw-semibold">Residential Address</label>
+                        <textarea name="address" class="form-control bg-dark text-white border-secondary" rows="2" placeholder="Navi Mumbai residential address...">{{ parent.address or '' }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="submit" class="btn btn-info fw-bold px-4">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Register Child Modal -->
+<div class="modal fade" id="addChildModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-child text-success me-2"></i> Register Child Student Account</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('parent.add_child') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small fw-semibold">Student Full Name *</label>
+                        <input type="text" name="full_name" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Manthan Patil" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label text-white-50 small fw-semibold">Roll Number / Student ID *</label>
+                            <input type="text" name="roll_number" class="form-control bg-dark text-white border-secondary" placeholder="e.g. KBP-2026-999" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-white-50 small fw-semibold">Grade & Section</label>
+                            <input type="text" name="grade_section" class="form-control bg-dark text-white border-secondary" placeholder="e.g. B.Sc CS (Third Year)">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="submit" class="btn btn-success fw-bold px-4"><i class="fa-solid fa-check me-1"></i> Register Student</button>
+                </div>
+<!-- Submit Absence Request Modal -->
+<div class="modal fade" id="addAbsenceModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card text-white border-warning">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold text-warning"><i class="fa-solid fa-bed-pulse me-2"></i> Submit Student Absence / Leave Request</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('parent.add_absence_request') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small fw-semibold">Select Child Student *</label>
+                        <select name="student_id" class="form-select bg-dark text-white border-secondary">
+                            <option value="">-- Choose Child Student --</option>
+                            {% for child in children %}
+                            <option value="{{ child.id }}">{{ child.full_name }} ({{ child.roll_number }}) — Assigned {{ child.assigned_bus.bus_code if child.assigned_bus else 'Bus' }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label text-white-50 small fw-semibold">Absence Date *</label>
+                            <input type="date" name="absence_date" class="form-control bg-dark text-white border-secondary" value="{{ today_date }}" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-white-50 small fw-semibold">Commute Session *</label>
+                            <select name="session_type" class="form-select bg-dark text-white border-secondary">
+                                <option value="FULL_DAY">Full Day (Pickup & Drop)</option>
+                                <option value="MORNING_PICKUP">Morning Pickup Only</option>
+                                <option value="EVENING_DROP">Evening Drop Only</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small fw-semibold">Reason for Absence / Leave</label>
+                        <select name="reason_preset" class="form-select bg-dark text-white border-secondary mb-2" onchange="if(this.value){document.getElementById('absenceReasonText').value=this.value;}">
+                            <option value="">-- Select Quick Reason Preset --</option>
+                            <option value="Medical / Sick Leave">Medical / Sick Leave</option>
+                            <option value="Family Function / Out of Town">Family Function / Out of Town</option>
+                            <option value="Personal Transportation Today">Personal Transportation Today</option>
+                            <option value="Exams / College Event">Exams / College Event</option>
+                        </select>
+                        <textarea id="absenceReasonText" name="reason" class="form-control bg-dark text-white border-secondary" rows="2" placeholder="State reason for driver & school admin reference...">Sick Leave</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="submit" class="btn btn-warning text-dark fw-bold px-4"><i class="fa-solid fa-paper-plane me-1"></i> Transmit Leave Notice to Driver</button>
+                </div>
+            </form>
+<!-- Proximity Preference Settings Modal -->
+<div class="modal fade" id="proximityModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card text-white border-warning">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold text-warning"><i class="fa-solid fa-location-crosshairs me-2"></i> Proximity Alert Preference</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('parent.update_proximity_preferences') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <p class="text-muted small">Choose your preferred distance threshold for automatic bus arrival alerts. You will receive a notification as soon as the bus enters this distance from your child's stop.</p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small fw-semibold">Proximity Alert Distance Threshold</label>
+                        <select name="proximity_radius_meters" class="form-select bg-dark text-white border-secondary">
+                            <option value="250" {% if parent.proximity_radius_meters == 250 %}selected{% endif %}>📍 250 Meters (~1-2 mins away)</option>
+                            <option value="500" {% if parent.proximity_radius_meters == 500 or not parent.proximity_radius_meters %}selected{% endif %}>📍 500 Meters (~3-4 mins away - Recommended)</option>
+                            <option value="1000" {% if parent.proximity_radius_meters == 1000 %}selected{% endif %}>📍 1000 Meters / 1 KM (~5-7 mins away)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="submit" class="btn btn-warning text-dark fw-bold px-4"><i class="fa-solid fa-floppy-disk me-1"></i> Save Proximity Preference</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

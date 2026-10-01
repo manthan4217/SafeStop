@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Trip Roster — SafeRide AI{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <a href="{{ url_for('driver.dashboard') }}" class="btn btn-outline-secondary btn-sm mb-1"><i class="fa-solid fa-arrow-left me-1"></i> Console</a>
+            <h4 class="fw-bold text-white mb-0"><i class="fa-solid fa-list-check text-info me-2"></i> Bus Student Roster</h4>
+        </div>
+        {% if active_trip %}
+        <a href="{{ url_for('driver.camera_verify') }}" class="btn btn-success btn-sm fw-bold">
+            <i class="fa-solid fa-camera me-1"></i> Camera Scan
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Roster Tabs -->
+    <ul class="nav nav-pills mb-4" id="rosterTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active fw-bold px-4" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending-panel" type="button">
+                Pending Boarding <span class="badge bg-warning text-dark ms-2">{{ pending|length }}</span>
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link fw-bold px-4" id="boarded-tab" data-bs-toggle="tab" data-bs-target="#boarded-panel" type="button">
+                Verified Boarded <span class="badge bg-success ms-2">{{ boarded|length }}</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="rosterTabContent">
+        <!-- Pending Boarding Tab -->
+        <div class="tab-pane fade show active" id="pending-panel">
+            <div class="glass-card p-4">
+                <div class="list-group list-group-flush bg-transparent">
+                    {% for st in pending %}
+                    <div class="list-group-item bg-transparent text-white border-secondary border-opacity-25 py-3">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center gap-3">
+                                <img src="{{ st.to_dict()['photo_url'] }}" alt="{{ st.full_name }}" class="rounded-circle border border-warning" style="width: 48px; height: 48px; object-fit: cover;">
+                                <div>
+                                    <h6 class="fw-bold text-white mb-0">{{ st.full_name }}</h6>
+                                    <small class="text-muted">{{ st.roll_number }} • Pickup: <b>{{ st.pickup_stop.stop_name if st.pickup_stop else 'Stop 1' }}</b></small>
+                                    {% if absent_map and st.id in absent_map %}
+                                    <div class="small text-warning mt-1"><i class="fa-solid fa-comment me-1"></i> Reason: "{{ absent_map[st.id].reason }}"</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if absent_map and st.id in absent_map %}
+                            <span class="badge bg-warning text-dark fw-bold p-2"><i class="fa-solid fa-bed-pulse me-1"></i> ON LEAVE (Parent Verified)</span>
+                            {% else %}
+                            <span class="badge badge-pending">PENDING</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-success py-4">
+                        <i class="fa-solid fa-circle-check fs-1 mb-2"></i>
+                        <h5>All assigned students have boarded verified!</h5>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Verified Boarded Tab -->
+        <div class="tab-pane fade" id="boarded-panel">
+            <div class="glass-card p-4">
+                <div class="list-group list-group-flush bg-transparent">
+                    {% for item in boarded %}
+                    <div class="list-group-item bg-transparent text-white border-secondary border-opacity-25 py-3">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center gap-3">
+                                <img src="{{ item.student.to_dict()['photo_url'] }}" alt="{{ item.student.full_name }}" class="rounded-circle border border-success" style="width: 48px; height: 48px; object-fit: cover;">
+                                <div>
+                                    <h6 class="fw-bold text-white mb-0">{{ item.student.full_name }}</h6>
+                                    <small class="text-muted">{{ item.student.roll_number }} • Verified at {{ item.attendance.verification_time.strftime('%I:%M %p') }}</small>
+                                </div>
+                            </div>
+                            <span class="badge badge-verified"><i class="fa-solid fa-check me-1"></i> {{ item.attendance.verification_status }}</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <p>No students boarded on this trip session yet.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

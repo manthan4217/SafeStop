@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}{{ bus.bus_code }} — Bus Monitoring — SafeRide AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <a href="{{ url_for('admin.buses') }}" class="btn btn-outline-secondary btn-sm mb-1"><i class="fa-solid fa-arrow-left me-1"></i> Buses List</a>
+            <h3 class="fw-bold text-white mb-0"><i class="fa-solid fa-bus text-info me-2"></i> Bus Monitoring: {{ bus.bus_code }}</h3>
+        </div>
+        <span class="badge bg-success bg-opacity-25 border border-success text-success px-3 py-2 fs-6">
+            Registration: {{ bus.registration_number }}
+        </span>
+    </div>
+
+    <div class="row g-4">
+        <!-- Overview & Risk Score -->
+        <div class="col-lg-4">
+            <div class="glass-card p-4 mb-4">
+                <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-circle-info text-info me-2"></i> Bus & Driver Info</h5>
+                <div class="mb-3">
+                    <div class="text-muted small">Assigned Driver</div>
+                    <div class="fw-bold text-white fs-5">{{ bus.driver.full_name if bus.driver else 'Unassigned' }}</div>
+                    <div class="text-muted small">{{ bus.driver.phone if bus.driver else '' }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="text-muted small">Assigned Route</div>
+                    <div class="fw-bold text-warning fs-6">{{ bus.route.name if bus.route else 'Unassigned' }}</div>
+                </div>
+
+                <div class="p-3 rounded bg-dark border border-secondary border-opacity-25">
+                    <div class="d-flex justify-content-between text-white-50 small mb-1">
+                        <span>Current Trip Status:</span>
+                        <span class="fw-bold text-success">{{ active_trip.status if active_trip else 'INACTIVE' }}</span>
+                    </div>
+                    {% if active_trip %}
+                    <div class="small text-muted">Started: {{ active_trip.start_time.strftime('%I:%M %p') }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Explainable Risk Score Card -->
+            <div class="glass-card p-4 border-{{ 'danger' if risk_info.level == 'HIGH' else ('warning' if risk_info.level == 'MEDIUM' else 'success') }}">
+                <h5 class="fw-bold text-white mb-2"><i class="fa-solid fa-shield-cat me-2"></i> Explainable AI Risk Score</h5>
+                <div class="d-flex align-items-center gap-3 my-3">
+                    <div class="display-4 fw-bold text-{{ 'danger' if risk_info.level == 'HIGH' else ('warning' if risk_info.level == 'MEDIUM' else 'success') }}">{{ risk_info.score }}</div>
+                    <div>
+                        <span class="badge bg-{{ 'danger' if risk_info.level == 'HIGH' else ('warning' if risk_info.level == 'MEDIUM' else 'success') }} fs-6">{{ risk_info.level }} RISK</span>
+                        <div class="text-muted small mt-1">Multi-factor Anomaly Score</div>
+                    </div>
+                </div>
+
+                <div class="text-white-50 small">
+                    <div class="fw-semibold text-white mb-1">Risk Rationale Breakdown:</div>
+                    <ul class="ps-3 mb-0">
+                        {% for reason in risk_info.breakdown %}
+                        <li>{{ reason }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Roster & Alerts -->
+        <div class="col-lg-8">
+            <!-- Attendance Roster -->
+            <div class="glass-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-users text-primary me-2"></i> Roster Attendance ({{ boarded_count }} / {{ students|length }} Boarded)</h5>
+                    <span class="badge bg-info">Capacity: {{ bus.capacity }} Seats</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle mb-0">
+                        <thead class="table-dark text-muted border-secondary">
+                            <tr>
+                                <th>Student</th>
+                                <th>Roll Number</th>
+                                <th>Pickup Stop</th>
+                                <th>Drop Stop</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for st in students %}
+                            <tr>
+                                <td class="fw-bold text-white">
+                                    <img src="{{ st.to_dict()['photo_url'] }}" alt="{{ st.full_name }}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                    {{ st.full_name }}
+                                </td>
+                                <td><span class="badge bg-secondary">{{ st.roll_number }}</span></td>
+                                <td class="text-muted small">{{ st.pickup_stop.stop_name if st.pickup_stop else 'Stop 1' }}</td>
+                                <td class="text-muted small">{{ st.drop_stop.stop_name if st.drop_stop else 'Stop 1' }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="4" class="text-center text-muted py-3">No students assigned to this bus.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Incident Alerts Log -->
+            <div class="glass-card p-4">
+                <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-triangle-exclamation text-danger me-2"></i> Safety Alert History</h5>
+                <div class="list-group list-group-flush bg-transparent">
+                    {% for alt in alerts %}
+                    <div class="list-group-item bg-transparent text-white border-secondary border-opacity-25 py-2 px-0">
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold text-warning">{{ alt.alert_type }}</span>
+                            <small class="text-muted">{{ alt.created_at.strftime('%b %d, %I:%M %p') }}</small>
+                        </div>
+                        <div class="small text-muted">{{ alt.description }}</div>
+                    </div>
+                    {% else %}
+                    <div class="text-muted small text-center py-3">No safety alerts logged for this bus.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

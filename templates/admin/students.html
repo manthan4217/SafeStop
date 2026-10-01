@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+{% block title %}Student Management — SafeRide AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+        <div>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm mb-1"><i class="fa-solid fa-arrow-left me-1"></i> Dashboard</a>
+            <h3 class="fw-bold text-white mb-0"><i class="fa-solid fa-user-graduate text-info me-2"></i> Student Transportation Directory</h3>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addParentModal">
+                <i class="fa-solid fa-user-shield me-1"></i> Add Parent Account
+            </button>
+            <a href="{{ url_for('admin.student_export_csv') }}" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-file-csv me-1"></i> Export Roster CSV
+            </a>
+            <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#importCsvModal">
+                <i class="fa-solid fa-file-import me-1"></i> Batch CSV Import
+            </button>
+            <button type="button" class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                <i class="fa-solid fa-user-plus me-1"></i> Register Student
+            </button>
+        </div>
+    </div>
+
+    <!-- Search & Filter Bar -->
+    <div class="glass-card p-3 mb-4">
+        <form method="GET" action="{{ url_for('admin.students') }}" class="row g-2">
+            <div class="col-md-9">
+                <input type="text" name="q" class="form-control bg-dark text-white border-secondary" placeholder="Search by student name or roll number..." value="{{ search_q }}">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-info w-100 fw-bold"><i class="fa-solid fa-magnifying-glass me-1"></i> Search</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Students Directory Table -->
+    <div class="glass-card p-4">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0">
+                <thead class="table-dark text-muted border-secondary">
+                    <tr>
+                        <th>Student</th>
+                        <th>Roll Number</th>
+                        <th>Grade</th>
+                        <th>Parent</th>
+                        <th>Assigned Bus</th>
+                        <th>Assigned Route</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for st in students %}
+                    <tr>
+                        <td class="fw-bold text-white">
+                            <img src="{{ st.to_dict()['photo_url'] }}" alt="{{ st.full_name }}" class="rounded-circle me-2" style="width: 36px; height: 36px; object-fit: cover;">
+                            {{ st.full_name }}
+                        </td>
+                        <td><span class="badge bg-primary">{{ st.roll_number }}</span></td>
+                        <td class="text-muted small">{{ st.grade_section or 'Grade 5' }}</td>
+                        <td class="text-white">{{ st.parent.user.full_name if st.parent else 'N/A' }}</td>
+                        <td class="fw-bold text-info">{{ st.assigned_bus.bus_code if st.assigned_bus else 'Unassigned' }}</td>
+                        <td class="text-muted small">{{ st.assigned_route.name if st.assigned_route else 'Unassigned' }}</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <button type="button" class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#tempBusModal{{ st.id }}">
+                                    <i class="fa-solid fa-bus-simple me-1"></i> Reassign
+                                </button>
+                                <form action="{{ url_for('admin.student_delete', student_id=st.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete student {{ st.full_name }}?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Temp Bus Reassignment Modal per Student -->
+                    <div class="modal fade" id="tempBusModal{{ st.id }}" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content glass-card text-white border-secondary">
+                                <div class="modal-header border-secondary">
+                                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-bus-simple text-warning me-2"></i> Approve Temporary Bus Reassignment</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form method="POST" action="{{ url_for('admin.student_temp_reassign') }}">
+                                    <div class="modal-body">
+                                        <input type="hidden" name="student_id" value="{{ st.id }}">
+                                        <div class="mb-3">
+                                            <label class="form-label text-white-50 small fw-semibold">Student</label>
+                                            <input type="text" class="form-control bg-dark text-white border-secondary" value="{{ st.full_name }} (Assigned: {{ st.assigned_bus.bus_code if st.assigned_bus else 'None' }})" readonly>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label text-white-50 small fw-semibold">Temporary Bus</label>
+                                            <select name="temp_bus_id" class="form-select bg-dark text-white border-secondary" required>
+                                                {% for b in buses %}
+                                                <option value="{{ b.id }}">{{ b.bus_code }} ({{ b.registration_number }})</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="row g-2 mb-3">
+                                            <div class="col-6">
+                                                <label class="form-label text-white-50 small fw-semibold">Start Date</label>
+                                                <input type="date" name="start_date" class="form-control bg-dark text-white border-secondary" required>
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label text-white-50 small fw-semibold">End Date</label>
+                                                <input type="date" name="end_date" class="form-control bg-dark text-white border-secondary" required>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label text-white-50 small fw-semibold">Reason</label>
+                                            <input type="text" name="reason" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Field trip / Temporary home stay" required>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer border-secondary">
+                                        <button type="submit" class="btn btn-warning fw-bold text-dark px-4">Approve Reassignment</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <tr><td colspan="7" class="text-center text-muted py-4">No student records found matching query.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Register Student Modal -->
+<div class="modal fade" id="addStudentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content glass-card text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus text-info me-2"></i> Register New Student</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.student_add') }}" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="student_full_name" class="form-label text-white-50 small fw-semibold">Full Name</label>
+                            <input type="text" id="student_full_name" name="full_name" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Vihaan Singh" autocomplete="name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="student_roll_number" class="form-label text-white-50 small fw-semibold">Roll Number / Student ID</label>
+                            <input type="text" id="student_roll_number" name="roll_number" class="form-control bg-dark text-white border-secondary" placeholder="e.g. STU-1006" autocomplete="off" required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="grade_section" class="form-label text-white-50 small fw-semibold">Grade & Section</label>
+                            <input type="text" id="grade_section" name="grade_section" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Grade 5-B" autocomplete="off">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="parent_id" class="form-label text-white-50 small fw-semibold">Link Parent Account</label>
+                            <select id="parent_id" name="parent_id" class="form-select bg-dark text-white border-secondary" autocomplete="off" required>
+                                {% for p in parents %}
+                                <option value="{{ p.id }}">{{ p.user.full_name }} ({{ p.user.email }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="student_bus_id" class="form-label text-white-50 small fw-semibold">Assign Bus</label>
+                            <select id="student_bus_id" name="bus_id" class="form-select bg-dark text-white border-secondary" autocomplete="off">
+                                <option value="">-- Choose Bus --</option>
+                                {% for b in buses %}
+                                <option value="{{ b.id }}">{{ b.bus_code }} ({{ b.registration_number }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="student_route_id" class="form-label text-white-50 small fw-semibold">Assign Route</label>
+                            <select id="student_route_id" name="route_id" class="form-select bg-dark text-white border-secondary" autocomplete="off">
+                                <option value="">-- Choose Route --</option>
+                                {% for r in routes %}
+                                <option value="{{ r.id }}">{{ r.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="pickup_stop_id" class="form-label text-white-50 small fw-semibold">Pickup Stop</label>
+                            <select id="pickup_stop_id" name="pickup_stop_id" class="form-select bg-dark text-white border-secondary" autocomplete="off">
+                                <option value="">-- Choose Pickup Stop --</option>
+                                {% for s in stops %}
+                                <option value="{{ s.id }}">{{ s.stop_name }} ({{ s.route.name if s.route else '' }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="drop_stop_id" class="form-label text-white-50 small fw-semibold">Drop Stop</label>
+                            <select id="drop_stop_id" name="drop_stop_id" class="form-select bg-dark text-white border-secondary" autocomplete="off">
+                                <option value="">-- Choose Drop Stop --</option>
+                                {% for s in stops %}
+                                <option value="{{ s.id }}">{{ s.stop_name }} ({{ s.route.name if s.route else '' }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="student_photo" class="form-label text-white-50 small fw-semibold">Student Photograph (For AI Face Recognition Profile)</label>
+                        <input type="file" id="student_photo" name="photo" class="form-control bg-dark text-white border-secondary" accept="image/*" autocomplete="off">
+                        <div class="form-text text-muted small">Extracts 128D facial feature vectors for automated driver camera verification.</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="submit" class="btn btn-primary-custom fw-bold px-4">Register & Generate AI Profile</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- Batch CSV Import Modal -->
+<div class="modal fade" id="importCsvModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-file-csv text-info me-2"></i> Batch Import Students via CSV</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.student_import_csv') }}" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="csv_file_input" class="form-label text-white-50 small fw-semibold">Upload CSV File</label>
+                        <input type="file" id="csv_file_input" name="csv_file" class="form-control bg-dark text-white border-secondary" accept=".csv" autocomplete="off" required>
+                    </div>
+                    <div class="p-3 rounded bg-dark border border-secondary border-opacity-25 small text-white-50">
+                        <strong class="text-white">Expected CSV Format:</strong><br>
+                        <code>full_name, roll_number, grade_section, parent_email</code><br>
+                        <span class="text-muted">Example: <code>Aarav Verma, STU-2001, Grade 6-A, parent1@saferide.ai</code></span>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="submit" class="btn btn-info fw-bold px-4">Upload & Bulk Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+<!-- Add Parent Account Modal -->
+<div class="modal fade" id="addParentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-shield text-success me-2"></i> Register New Parent Account</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.parent_add') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small fw-semibold">Parent Full Name *</label>
+                        <input type="text" name="full_name" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Dr. Ashok Patil" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small fw-semibold">Email Address (Login Username) *</label>
+                        <input type="email" name="email" class="form-control bg-dark text-white border-secondary" placeholder="parent@saferide.ai" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label text-white-50 small fw-semibold">Phone Number *</label>
+                            <input type="text" name="phone" class="form-control bg-dark text-white border-secondary" placeholder="+91 98201 00000" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-white-50 small fw-semibold">Password *</label>
+                            <input type="password" name="password" class="form-control bg-dark text-white border-secondary" value="parent123" required>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label text-white-50 small fw-semibold">Relationship</label>
+                            <select name="relationship" class="form-select bg-dark text-white border-secondary">
+                                <option value="Father">Father</option>
+                                <option value="Mother">Mother</option>
+                                <option value="Guardian">Guardian</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-white-50 small fw-semibold">Emergency Contact</label>
+                            <input type="text" name="emergency_contact" class="form-control bg-dark text-white border-secondary" placeholder="+91 98201 00000">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small fw-semibold">Residential Address</label>
+                        <textarea name="address" class="form-control bg-dark text-white border-secondary" rows="2" placeholder="Sector, City, Pin Code..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="submit" class="btn btn-success fw-bold px-4"><i class="fa-solid fa-check me-1"></i> Create Parent Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

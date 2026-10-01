@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Parent Registration — SafeRide AI{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-6">
+            <div class="glass-card p-4 p-md-5 animate__animated animate__fadeInUp">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex p-3 rounded-circle bg-primary bg-opacity-10 text-primary mb-3">
+                        <i class="fa-solid fa-users-viewfinder fs-1"></i>
+                    </div>
+                    <h3 class="fw-bold text-white mb-1">Parent Registration</h3>
+                    <p class="text-muted">Register to monitor your child's transportation safety</p>
+                </div>
+
+                <form method="POST" action="{{ url_for('auth.register_parent') }}">
+                    <div class="mb-3">
+                        <label for="student_invite_code" class="form-label text-white-50 small fw-semibold">Student Invite Code <span class="text-danger">*</span></label>
+                        <input type="text" id="student_invite_code" name="student_invite_code" class="form-control bg-dark text-white border-secondary text-uppercase fw-bold" placeholder="e.g. STU-INV-8F3K9A" autocomplete="off" required>
+                        <div class="form-text text-muted small">Enter the guardian verification code issued on your child's registration slip.</div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="full_name" class="form-label text-white-50 small fw-semibold">Full Name</label>
+                            <input type="text" id="full_name" name="full_name" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Rajesh Patil" autocomplete="name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="phone" class="form-label text-white-50 small fw-semibold">Phone Number</label>
+                            <input type="tel" id="phone" name="phone" class="form-control bg-dark text-white border-secondary" placeholder="+91 99000 00000" autocomplete="tel" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label text-white-50 small fw-semibold">Email Address</label>
+                        <input type="email" id="email" name="email" class="form-control bg-dark text-white border-secondary" placeholder="parent@domain.com" autocomplete="email" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label text-white-50 small fw-semibold">Password</label>
+                        <input type="password" id="password" name="password" class="form-control bg-dark text-white border-secondary" placeholder="••••••••" autocomplete="new-password" required>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="relationship" class="form-label text-white-50 small fw-semibold">Relationship</label>
+                            <select id="relationship" name="relationship" class="form-select bg-dark text-white border-secondary" autocomplete="off">
+                                <option value="Father">Father</option>
+                                <option value="Mother">Mother</option>
+                                <option value="Guardian">Guardian</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="emergency_contact" class="form-label text-white-50 small fw-semibold">Emergency Contact</label>
+                            <input type="tel" id="emergency_contact" name="emergency_contact" class="form-control bg-dark text-white border-secondary" placeholder="+91 99000 00000" autocomplete="tel">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="address" class="form-label text-white-50 small fw-semibold">Home Address</label>
+                        <textarea id="address" name="address" class="form-control bg-dark text-white border-secondary" rows="2" placeholder="Residential address for stop assignment..." autocomplete="street-address"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary-custom w-100 py-2.5 fs-6 fw-bold">
+                        Complete Registration <i class="fa-solid fa-user-plus ms-1"></i>
+                    </button>
+                </form>
+
+                <div class="text-center mt-3 pt-3 border-top border-secondary border-opacity-25">
+                    <span class="text-muted small">Already registered? </span>
+                    <a href="{{ url_for('auth.login') }}" class="text-info small fw-semibold text-decoration-none">Sign In Here</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

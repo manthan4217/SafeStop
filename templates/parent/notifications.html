@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Notifications — SafeRide AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <a href="{{ url_for('parent.dashboard') }}" class="btn btn-outline-secondary btn-sm mb-1"><i class="fa-solid fa-arrow-left me-1"></i> Dashboard</a>
+            <h3 class="fw-bold text-white mb-0"><i class="fa-solid fa-bell text-warning me-2"></i> Notification History</h3>
+        </div>
+    </div>
+
+    <div class="glass-card p-4">
+        <div class="list-group list-group-flush bg-transparent">
+            {% for n in notifications %}
+            <div class="list-group-item bg-transparent text-white border-secondary border-opacity-25 py-3">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="p-3 rounded-circle bg-dark border border-secondary border-opacity-25">
+                        {% if n.category == 'BOARDING' %}
+                            <i class="fa-solid fa-bus text-success fs-4"></i>
+                        {% elif n.category == 'WRONG_BUS' or n.category == 'EMERGENCY' %}
+                            <i class="fa-solid fa-triangle-exclamation text-danger fs-4"></i>
+                        {% elif n.category == 'SAFE_DROP' %}
+                            <i class="fa-solid fa-location-dot text-warning fs-4"></i>
+                        {% else %}
+                            <i class="fa-solid fa-circle-info text-info fs-4"></i>
+                        {% endif %}
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-1">{{ n.title }}</h5>
+                            <span class="text-muted small">{{ n.created_at.strftime('%b %d, %Y - %I:%M %p') }}</span>
+                        </div>
+                        <p class="text-white-50 mb-2">{{ n.message }}</p>
+                        {% if n.action_link %}
+                            <a href="{{ n.action_link }}" class="btn btn-sm btn-outline-warning">Take Action</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="fa-regular fa-bell-slash fs-1 mb-3"></i>
+                <p>No notifications found in history.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

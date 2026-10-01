@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Safety Alerts Center — SafeRide AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm mb-1"><i class="fa-solid fa-arrow-left me-1"></i> Dashboard</a>
+            <h3 class="fw-bold text-white mb-0"><i class="fa-solid fa-shield-cat text-danger me-2"></i> Master Safety Incident & Alert Center</h3>
+        </div>
+    </div>
+
+    <!-- Active Incident Feed Table -->
+    <div class="glass-card p-4 mb-4">
+        <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-bell text-warning me-2"></i> Safety & Transportation Alerts</h5>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0">
+                <thead class="table-dark text-muted border-secondary">
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Alert Category</th>
+                        <th>Bus Code</th>
+                        <th>Severity</th>
+                        <th>Description & Risk Impact</th>
+                        <th>Status / Resolution</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alt in alerts %}
+                    <tr>
+                        <td class="text-white-50 small">{{ alt.created_at.strftime('%b %d, %Y - %I:%M %p') }}</td>
+                        <td>
+                            {% if alt.alert_type == 'WRONG_BUS' %}
+                                <span class="badge badge-wrongbus"><i class="fa-solid fa-triangle-exclamation me-1"></i> WRONG BUS</span>
+                            {% elif alt.alert_type == 'SOS_EMERGENCY' %}
+                                <span class="badge bg-danger animate__animated animate__pulse animate__infinite"><i class="fa-solid fa-skull me-1"></i> EMERGENCY SOS</span>
+                            {% elif alt.alert_type == 'ROUTE_DEVIATION' %}
+                                <span class="badge bg-warning text-dark"><i class="fa-solid fa-route me-1"></i> ROUTE DEVIATION</span>
+                            {% else %}
+                                <span class="badge bg-info text-dark">{{ alt.alert_type }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="fw-bold text-info">{{ alt.bus.bus_code if alt.bus else 'N/A' }}</td>
+                        <td>
+                            {% if alt.severity == 'CRITICAL' %}
+                                <span class="badge bg-danger">CRITICAL (+{{ alt.risk_score }})</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">WARNING (+{{ alt.risk_score }})</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-white fw-semibold">{{ alt.description }}</td>
+                        <td>
+                            {% if alt.is_resolved %}
+                                <span class="badge badge-verified"><i class="fa-solid fa-check me-1"></i> RESOLVED</span>
+                            {% else %}
+                                <form method="POST" action="{{ url_for('admin.resolve_alert', alert_id=alt.id) }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-success">Mark Resolved</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">Zero active safety alerts in log. All operations operating normally.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

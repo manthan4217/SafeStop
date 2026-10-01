@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+{% block title %}Driver Console — SafeRide AI{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    <!-- Driver Mobile Header -->
+    <div class="glass-card p-3 p-md-4 mb-4 border-info">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <span class="badge bg-info text-dark mb-1 fw-bold">MOBILE DRIVER FIELD CONSOLE</span>
+                <h3 class="fw-bold text-white mb-0"><i class="fa-solid fa-id-card-clip text-info me-2"></i> {{ driver.full_name }}</h3>
+                <div class="text-muted small">Assigned Vehicle: <b>{{ bus.bus_code if bus else 'Unassigned' }}</b> | Route: <b>{{ route.name if route else 'Unassigned' }}</b></div>
+            </div>
+
+            <!-- Emergency SOS Button -->
+            <button type="button" class="btn btn-sos ms-auto" data-bs-toggle="modal" data-bs-target="#sosModal">
+                <i class="fa-solid fa-triangle-exclamation me-1"></i> SOS EMERGENCY
+            </button>
+        </div>
+    </div>
+
+    <!-- Driver Duty & Mobile Bus Activation Controller Card -->
+    <div class="glass-card p-4 mb-4 border-2 {% if driver.is_online %}border-success{% else %}border-secondary{% endif %}" id="online-status-card">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div>
+                <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
+                    <span class="badge {% if driver.is_online %}bg-success text-white{% else %}bg-secondary text-white{% endif %} fs-6 px-3 py-2 fw-bold" id="driver-online-badge">
+                        {% if driver.is_online %}
+                            <i class="fa-solid fa-circle-dot me-1 text-light animate__animated animate__flash animate__infinite"></i> DRIVER ONLINE — BUS ACTIVE
+                        {% else %}
+                            <i class="fa-solid fa-circle-pause me-1"></i> DRIVER OFFLINE — BUS INACTIVE
+                        {% endif %}
+                    </span>
+                    <span class="badge bg-dark border border-secondary text-info px-2.5 py-1.5 small">
+                        <i class="fa-solid fa-mobile-screen-button me-1"></i> Mobile GPS Tracking (No Hardware Required)
+                    </span>
+                </div>
+                <h5 class="fw-bold text-white mb-1">Bus Duty & Location Controller</h5>
+                <p class="text-muted small mb-0">
+                    When Online, your smartphone streams live GPS coordinates as <b>{{ bus.bus_code if bus else 'Assigned Bus' }}</b> location for Parents & Admin.
+                    <span id="gps-live-feedback" class="ms-2 fw-semibold {% if driver.is_online %}text-success{% else %}text-muted{% endif %}">
+                        {% if driver.is_online %}<i class="fa-solid fa-satellite-dish me-1"></i> Mobile GPS Streaming Active{% else %}<i class="fa-solid fa-location-crosshairs me-1"></i> GPS Standby (Driver Offline){% endif %}
+                    </span>
+                </p>
+            </div>
+
+            <div>
+                <button type="button" class="btn {% if driver.is_online %}btn-danger{% else %}btn-success{% endif %} btn-lg px-4 py-2.5 fw-bold shadow" id="btn-toggle-online" onclick="toggleDriverOnlineStatus()">
+                    {% if driver.is_online %}
+                        <i class="fa-solid fa-power-off me-2"></i> GO OFFLINE (DEACTIVATE BUS)
+                    {% else %}
+                        <i class="fa-solid fa-wifi me-2"></i> GO ONLINE & ACTIVATE BUS
+                    {% endif %}
+                </button>
+            </div>
+        </div>
+
+        <!-- Live Mobile GPS Telemetry Details Bar -->
+        <div class="row g-2 mt-3 pt-3 border-top border-secondary text-center small align-items-center" id="gps-telemetry-bar">
+            <div class="col-6 col-md-3 text-muted">
+                <i class="fa-solid fa-bus text-info me-1"></i> Bus Status: <b class="text-white" id="telemetry-bus-status">{{ bus.status if bus else 'UNASSIGNED' }}</b>
+            </div>
+            <div class="col-6 col-md-3 text-muted">
+                <i class="fa-solid fa-location-dot text-danger me-1"></i> Mobile Lat/Lng: <b class="text-white" id="telemetry-coords">-- , --</b>
+            </div>
+            <div class="col-6 col-md-3 text-muted">
+                <i class="fa-solid fa-clock text-warning me-1"></i> Last Fix: <b class="text-white" id="telemetry-timestamp">Never</b>
+            </div>
+            <div class="col-6 col-md-3 text-muted">
+                <i class="fa-solid fa-signal text-success me-1"></i> Accuracy: <b class="text-white" id="telemetry-accuracy">Mobile GPS</b>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Trip Controller Card -->
+    <div class="glass-card p-4 mb-4 text-center">
+        {% if active_trip %}
+        <div class="badge badge-verified fs-6 mb-2">TRIP IN PROGRESS</div>
+        <h4 class="fw-bold text-white mb-1">{{ active_trip.trip_type.replace('_', ' ') }}</h4>
+        <div class="text-muted small mb-3">Started at {{ active_trip.start_time.strftime('%I:%M %p') }}</div>
+
+        <!-- Big Action Buttons for Mobile Driver -->
+        <div class="d-grid gap-3 col-md-8 mx-auto mb-3">
+            <a href="{{ url_for('driver.camera_verify') }}" class="btn btn-success btn-lg py-3 fw-bold shadow-lg">
+                <i class="fa-solid fa-camera fs-4 me-2"></i> OPEN AI FACE VERIFICATION
+            </a>
+            <a href="{{ url_for('driver.roster') }}" class="btn btn-outline-info btn-lg py-2.5 fw-semibold">
+                <i class="fa-solid fa-list-check me-2"></i> View Roster ({{ boarded_count }} / {{ total_students }} Boarded)
+            </a>
+        </div>
+
+        <form method="POST" action="{{ url_for('driver.end_trip') }}" onsubmit="return confirm('Conclude and end current trip session?');">
+            <button type="submit" class="btn btn-outline-danger btn-sm">
+                <i class="fa-solid fa-flag-checkered me-1"></i> Complete & End Trip Session
+            </button>
+        </form>
+
+        {% else %}
+        <div class="badge bg-secondary mb-2 fs-6">NO ACTIVE TRIP</div>
+        <h4 class="fw-bold text-white mb-3">Start New Bus Journey</h4>
+
+        <form method="POST" action="{{ url_for('driver.start_trip') }}" class="row g-3 justify-content-center">
+            <div class="col-md-6">
+                <select name="trip_type" class="form-select form-select-lg bg-dark text-white border-secondary mb-3">
+                    <option value="MORNING_PICKUP">☀️ Morning Pickup (Home → School)</option>
+                    <option value="EVENING_DROP">🌆 Evening Return (School → Home)</option>
+                </select>
+                <button type="submit" class="btn btn-primary-custom btn-lg w-100 py-3 fw-bold shadow">
+                    <i class="fa-solid fa-play me-2"></i> START TRIP SESSION
+                </button>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+
+    <!-- Quick Roster KPI Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-4">
+            <div class="glass-card kpi-card p-3 text-center">
+                <div class="kpi-value text-info">{{ total_students }}</div>
+                <div class="kpi-label">Total Roster</div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="glass-card kpi-card p-3 text-center">
+                <div class="kpi-value text-success">{{ boarded_count }}</div>
+                <div class="kpi-label">Boarded</div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="glass-card kpi-card p-3 text-center">
+                <div class="kpi-value text-warning">{{ pending_count }}</div>
+                <div class="kpi-label">Pending</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Driver Drowsiness & Safety Telemetry Widget -->
+    <div class="glass-card p-4 mb-4 border-warning">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-heart-pulse text-warning fs-4"></i>
+                <div>
+                    <h5 class="fw-bold text-white mb-0">AI Driver Drowsiness & Telemetry Monitor</h5>
+                    <div class="text-muted small">Real-time driver attentiveness & vehicle telemetry tracking</div>
+                </div>
+            </div>
+            <span class="badge bg-success bg-opacity-25 border border-success text-success px-3 py-2 fw-bold" id="telemetry-status-badge">
+                <i class="fa-solid fa-circle-check me-1"></i> ATTENTION: NORMAL
+            </span>
+        </div>
+
+        <div class="row g-3 text-center mb-3">
+            <div class="col-6 col-md-3">
+                <div class="bg-dark bg-opacity-50 p-3 rounded border border-secondary">
+                    <div class="text-muted small mb-1 fw-semibold">Safety Score</div>
+                    <div class="h3 fw-bold text-success mb-0" id="val-safety-score">98%</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="bg-dark bg-opacity-50 p-3 rounded border border-secondary">
+                    <div class="text-muted small mb-1 fw-semibold">Live Speed</div>
+                    <div class="h3 fw-bold text-info mb-0" id="val-speed">38 km/h</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="bg-dark bg-opacity-50 p-3 rounded border border-secondary">
+                    <div class="text-muted small mb-1 fw-semibold">Fatigue Score</div>
+                    <div class="h3 fw-bold text-warning mb-0" id="val-fatigue">0.05</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="bg-dark bg-opacity-50 p-3 rounded border border-secondary">
+                    <div class="text-muted small mb-1 fw-semibold">Distraction State</div>
+                    <div class="h3 fw-bold text-white mb-0 fs-6 mt-1" id="val-distraction">NONE</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Simulation Controls for Demonstration -->
+        <div class="p-3 bg-dark bg-opacity-75 rounded border border-secondary">
+            <div class="text-white-50 small mb-2 fw-bold"><i class="fa-solid fa-vial me-1 text-warning"></i> Safety Event Telemetry Test Simulator</div>
+            <div class="d-flex flex-wrap gap-2">
+                <form method="POST" action="{{ url_for('driver.simulate_telemetry') }}" class="d-inline">
+                    <input type="hidden" name="sim_type" value="DROWSINESS">
+                    <button type="submit" class="btn btn-outline-danger btn-sm fw-semibold">
+                        <i class="fa-solid fa-eye-slash me-1"></i> Trigger Drowsiness Warning
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('driver.simulate_telemetry') }}" class="d-inline">
+                    <input type="hidden" name="sim_type" value="OVERSPEED">
+                    <button type="submit" class="btn btn-outline-warning btn-sm fw-semibold">
+                        <i class="fa-solid fa-gauge-high me-1"></i> Trigger Overspeed Alert
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('driver.simulate_telemetry') }}" class="d-inline">
+                    <input type="hidden" name="sim_type" value="NORMAL">
+                    <button type="submit" class="btn btn-outline-success btn-sm fw-semibold">
+                        <i class="fa-solid fa-rotate-left me-1"></i> Reset to Normal
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Emergency SOS Trigger Modal -->
+<div class="modal fade" id="sosModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card border-danger text-white">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Confirm Emergency SOS Dispatch</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="fa-solid fa-bus-slash text-danger fa-4x mb-3 animate__animated animate__pulse animate__infinite"></i>
+                <h5 class="fw-bold mb-2">Trigger High Priority Emergency Alert?</h5>
+                <p class="text-muted small">This will immediately broadcast live GPS coordinates and emergency alert to all School Administrators.</p>
+
+                <input type="text" id="sos-desc" class="form-control bg-dark text-white border-secondary mb-3" placeholder="Optional details (e.g. Engine Breakdown, Medical emergency)">
+
+                <button type="button" class="btn btn-danger btn-lg w-100 fw-bold py-3" onclick="triggerSosNow()">
+                    🚨 TRANSMIT SOS ALERT NOW
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<div id="driver-config" data-trip-id="{{ active_trip.id if active_trip else '' }}" data-is-online="{{ 'true' if driver.is_online else 'false' }}"></div>
+<script>
+let gpsIntervalTimer = null;
+let isDriverOnline = document.getElementById('driver-config')?.dataset.isOnline === 'true';
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+function updateLocationOnServer(lat, lng) {
+    const tripIdAttr = document.getElementById('driver-config')?.dataset.tripId;
+    const tripId = tripIdAttr ? parseInt(tripIdAttr, 10) : null;
+
+    const coordsEl = document.getElementById('telemetry-coords');
+    const tsEl = document.getElementById('telemetry-timestamp');
+    if (coordsEl) coordsEl.innerText = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    if (tsEl) tsEl.innerText = new Date().toLocaleTimeString();
+
+    fetch("{{ url_for('driver.api_gps_update') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            latitude: lat,
+            longitude: lng,
+            trip_id: tripId
+        })
+    }).then(res => res.json()).then(data => {
+        if(data.status === 'SUCCESS') {
+            const feedback = document.getElementById('gps-live-feedback');
+            if(feedback) feedback.innerHTML = '<i class="fa-solid fa-satellite-dish me-1"></i> Mobile GPS Streaming Active';
+            const busStatusEl = document.getElementById('telemetry-bus-status');
+            if(busStatusEl && data.bus_status) busStatusEl.innerText = data.bus_status;
+        }
+    }).catch(err => {
+        console.warn("GPS sync warning:", err);
+    });
+}
+
+function startMobileGpsTracking() {
+    if (!navigator.geolocation) {
+        alert("Geolocation API is not supported by your browser/device.");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(pos => {
+        updateLocationOnServer(pos.coords.latitude, pos.coords.longitude);
+        const accEl = document.getElementById('telemetry-accuracy');
+        if (accEl && pos.coords.accuracy) {
+            accEl.innerText = `±${Math.round(pos.coords.accuracy)}m`;
+        }
+    }, err => {
+        console.warn("Initial GPS fix error:", err.message);
+    }, { enableHighAccuracy: true });
+
+    if (gpsIntervalTimer) clearInterval(gpsIntervalTimer);
+    gpsIntervalTimer = setInterval(() => {
+        navigator.geolocation.getCurrentPosition(pos => {
+            updateLocationOnServer(pos.coords.latitude, pos.coords.longitude);
+            const accEl = document.getElementById('telemetry-accuracy');
+            if (accEl && pos.coords.accuracy) {
+                accEl.innerText = `±${Math.round(pos.coords.accuracy)}m`;
+            }
+        }, err => console.warn("Mobile GPS stream error:", err.message), { enableHighAccuracy: true, timeout: 4500 });
+    }, 5000);
+}
+
+function stopMobileGpsTracking() {
+    if (gpsIntervalTimer) {
+        clearInterval(gpsIntervalTimer);
+        gpsIntervalTimer = null;
+    }
+    const coordsEl = document.getElementById('telemetry-coords');
+    if (coordsEl) coordsEl.innerText = '-- , --';
+    const feedback = document.getElementById('gps-live-feedback');
+    if (feedback) feedback.innerHTML = '<i class="fa-solid fa-location-crosshairs me-1"></i> GPS Standby (Driver Offline)';
+}
+
+async function toggleDriverOnlineStatus() {
+    const btn = document.getElementById('btn-toggle-online');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Updating Status...';
+    }
+
+    try {
+        const res = await fetch("{{ url_for('driver.api_toggle_online') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ is_online: !isDriverOnline })
+        });
+        const data = await res.json();
+        if (data.status === 'SUCCESS') {
+            isDriverOnline = data.is_online;
+            window.location.reload();
+        } else {
+            alert(data.message || "Failed to toggle online status.");
+            window.location.reload();
+        }
+    } catch(e) {
+        alert("Network error updating driver online status.");
+        window.location.reload();
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    if (isDriverOnline) {
+        startMobileGpsTracking();
+    }
+});
+
+function triggerSosNow() {
+    const desc = document.getElementById('sos-desc').value || 'Driver Emergency SOS';
+    const tripIdAttr = document.getElementById('driver-config')?.dataset.tripId;
+    const tripId = tripIdAttr ? parseInt(tripIdAttr, 10) : null;
+    
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+        const payload = {
+            trip_id: tripId,
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            description: desc
+        };
+
+        const res = await fetch('/driver/api/trigger-sos', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        alert("🚨 EMERGENCY SOS BROADCASTED TO SCHOOL TRANSPORT CENTER!");
+        window.location.reload();
+    }, (err) => {
+        alert("Sending SOS with default location...");
+        fetch('/driver/api/trigger-sos', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ trip_id: tripId, description: desc })
+        }).then(() => {
+            alert("🚨 SOS BROADCASTED!");
+            window.location.reload();
+        });
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Master Attendance Log — SafeRide AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm mb-1"><i class="fa-solid fa-arrow-left me-1"></i> Dashboard</a>
+            <h3 class="fw-bold text-white mb-0"><i class="fa-solid fa-clipboard-user text-success me-2"></i> Master Transportation Attendance Log</h3>
+        </div>
+    </div>
+
+    <div class="glass-card p-4">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0">
+                <thead class="table-dark text-muted border-secondary">
+                    <tr>
+                        <th>Verification Time</th>
+                        <th>Student Name</th>
+                        <th>Roll Number</th>
+                        <th>Bus Code</th>
+                        <th>Verification Status</th>
+                        <th>Driver / Method</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for att in attendances %}
+                    <tr>
+                        <td class="text-white-50 small">{{ att.verification_time.strftime('%b %d, %Y - %I:%M %p') }}</td>
+                        <td class="fw-bold text-white">
+                            <img src="{{ att.student.to_dict()['photo_url'] }}" alt="{{ att.student.full_name }}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                            {{ att.student.full_name }}
+                        </td>
+                        <td><span class="badge bg-secondary">{{ att.student.roll_number }}</span></td>
+                        <td class="fw-bold text-info">{{ att.bus.bus_code if att.bus else 'N/A' }}</td>
+                        <td>
+                            {% if att.verification_status == 'VERIFIED' %}
+                                <span class="badge badge-verified"><i class="fa-solid fa-check me-1"></i> VERIFIED</span>
+                            {% elif att.verification_status == 'WRONG_BUS' %}
+                                <span class="badge badge-wrongbus"><i class="fa-solid fa-triangle-exclamation me-1"></i> WRONG BUS</span>
+                            {% else %}
+                                <span class="badge bg-info text-dark">{{ att.verification_status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted small">{{ att.notes or 'AI Verification' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">No attendance records found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

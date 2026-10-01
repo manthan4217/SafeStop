@@ -1,0 +1,8 @@
+<resources>
+    <style name="Theme.SafeStop" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#1e1b4b</item>
+        <item name="colorPrimaryVariant">#0f172a</item>
+        <item name="colorOnPrimary">#ffffff</item>
+        <item name="android:statusBarColor">#0f172a</item>
+    </style>
+</resources>

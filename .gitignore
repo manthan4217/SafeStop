@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.env
+venv/
+ENV/
+
+# Database
+saferide.db
+instance/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Android Build artifacts
+android/app/build/
+android/.gradle/
+android/local.properties
+android/gradle/wrapper/gradle-wrapper.jar
+android/jdk-17.0.2/
+android/jdk17.zip
+
+# OSX
+.DS_Store

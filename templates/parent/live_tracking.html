@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block title %}Live Bus Tracking — {{ student.full_name }} — SafeRide AI{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <a href="{{ url_for('parent.dashboard') }}" class="btn btn-outline-secondary btn-sm mb-1"><i class="fa-solid fa-arrow-left me-1"></i> Dashboard</a>
+            <h3 class="fw-bold text-white mb-0"><i class="fa-solid fa-location-crosshairs text-info me-2"></i> Live Bus Tracking: {{ bus.bus_code }}</h3>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success bg-opacity-25 border border-success text-success px-3 py-2">
+                <i class="fa-solid fa-satellite-dish fa-spin me-1"></i> LIVE GPS FEED
+            </span>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Live Map View (Main Column) -->
+        <div class="col-lg-8 col-xl-9">
+            <div class="glass-card p-3">
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <!-- Trip Info & ETA Sidebar -->
+        <div class="col-lg-4 col-xl-3">
+            <!-- Dedicated Child Location & Status Card -->
+            <div class="glass-card p-4 mb-4 border border-info border-opacity-50 shadow-lg">
+                <h5 class="fw-bold text-info mb-3">
+                    <i class="fa-solid fa-child-reaching me-2"></i> {{ student.full_name }}'s Location
+                </h5>
+                <div class="p-3 rounded bg-dark border border-secondary border-opacity-25 mb-3">
+                    <div class="text-muted small">Current Safety & Boarding Status</div>
+                    <div id="child-status-badge" class="fw-bold fs-6 mt-1">
+                        {% if child_info.status == 'ON_BUS' %}
+                            <span class="text-success"><i class="fa-solid fa-bus-simple me-1"></i> {{ child_info.status_label }}</span>
+                        {% elif child_info.status == 'DROPPED' %}
+                            <span class="text-info"><i class="fa-solid fa-house-chimney me-1"></i> {{ child_info.status_label }}</span>
+                        {% else %}
+                            <span class="text-warning"><i class="fa-solid fa-location-dot me-1"></i> {{ child_info.status_label }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="small text-white-50">
+                    <div class="mb-2"><i class="fa-solid fa-circle-dot text-success me-2"></i> Pickup Stop: <b class="text-white">{{ child_info.pickup_stop_name }}</b></div>
+                    <div><i class="fa-solid fa-location-dot text-danger me-2"></i> Drop Stop: <b class="text-white">{{ child_info.drop_stop_name }}</b></div>
+                </div>
+            </div>
+
+            <!-- Active Trip Card -->
+            <div class="glass-card p-4 mb-4">
+                <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-bus text-info me-2"></i> Bus Trip Details</h5>
+
+                <div class="p-3 rounded bg-dark border border-secondary border-opacity-25 mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small">Trip Status</span>
+                        <span id="trip-status-badge" class="badge {% if active_trip %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ 'DRIVER ACTIVE' if active_trip else 'INACTIVE' }}
+                        </span>
+                    </div>
+                    <div id="trip-type-label" class="fw-bold text-info mt-1 fs-6">
+                        {{ active_trip.trip_type.replace('_', ' ') if active_trip else 'DRIVER OFF-DUTY' }}
+                    </div>
+                </div>
+
+                <div class="row g-2 text-center text-white-50 small mb-3">
+                    <div class="col-6">
+                        <div class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+                            <div class="text-muted">Speed</div>
+                            <div id="bus-speed" class="fw-bold text-white fs-6">0 km/h</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="col-12">
+                            <div class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+                                <div class="text-muted">Delay</div>
+                                <div id="bus-delay" class="fw-bold text-success fs-6">0 mins</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded bg-dark border border-warning border-opacity-25">
+                    <div class="text-warning small fw-semibold mb-1"><i class="fa-solid fa-clock me-1"></i> Estimated Arrival (ETA)</div>
+                    <div id="eta-display" class="fw-bold text-white fs-5">
+                        {{ 'In Transit (Live GPS)' if active_trip else 'Awaiting Driver Activation' }}
+                    </div>
+                    <div id="eta-subtext" class="text-muted small mt-1">
+                        {{ 'Tracking driver\'s mobile device' if active_trip else 'Bus location appears on map when driver starts trip' }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Route Stop Sequence -->
+            <div class="glass-card p-4">
+                <h6 class="fw-bold text-white mb-3"><i class="fa-solid fa-list-ol text-primary me-2"></i> Route Stops</h6>
+                <div class="timeline text-white-50 small">
+                    {% for stop in route.stops.order_by(route.stops.model.sequence_order).all() if route %}
+                    <div class="p-2 mb-2 rounded bg-dark border border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="badge {{ 'bg-success' if stop.id == student.pickup_stop_id else ('bg-purple' if stop.id == student.drop_stop_id else 'bg-primary') }} me-2">{{ stop.sequence_order }}</span>
+                            <span class="fw-semibold text-white">{{ stop.stop_name }}</span>
+                            {% if stop.id == student.pickup_stop_id %}<span class="badge bg-success ms-1">Child Pickup</span>{% endif %}
+                            {% if stop.id == student.drop_stop_id %}<span class="badge bg-info ms-1">Child Drop</span>{% endif %}
+                        </div>
+                        <span class="text-muted small">{{ stop.scheduled_pickup_time or 'N/A' }}</span>
+                    </div>
+                    {% else %}
+                    <div class="text-muted">No stops defined for route.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/live_map.js') }}"></script>
+<script id="stops-data" type="application/json">
+  {{ stops_json|tojson|safe }}
+</script>
+<script id="child-info" type="application/json">
+  {{ child_info|tojson|safe }}
+</script>
+<div id="bus-config" data-bus-id="{{ bus.id }}" data-bus-code="{{ bus.bus_code }}"></div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const stopsData = JSON.parse(document.getElementById('stops-data').textContent);
+    const childInfo = JSON.parse(document.getElementById('child-info').textContent);
+    const busConfig = document.getElementById('bus-config').dataset;
+    const busId = parseInt(busConfig.busId, 10);
+    const busCode = busConfig.busCode;
+
+    const tracker = new BusTrackerMap('map', 19.0760, 72.8777, 13);
+    tracker.renderRoute(stopsData);
+
+    // Initial child location marker placement
+    if (childInfo) {
+        let initLat = childInfo.pickup_lat;
+        let initLng = childInfo.pickup_lng;
+        if (childInfo.status === 'DROPPED') {
+            initLat = childInfo.drop_lat;
+            initLng = childInfo.drop_lng;
+        }
+        tracker.updateChildLocation(childInfo.name, initLat, initLng, childInfo.status, childInfo.status_label);
+    }
+
+    async function pollBusLocation() {
+        try {
+            const resp = await fetch(`/parent/api/live-bus-location/${busId}`);
+            const data = await resp.json();
+
+            const statusBadge = document.getElementById('trip-status-badge');
+            const tripTypeLabel = document.getElementById('trip-type-label');
+            const etaDisplay = document.getElementById('eta-display');
+            const etaSubtext = document.getElementById('eta-subtext');
+
+            if (data.status === 'ACTIVE' && data.lat && data.lng) {
+                if (statusBadge) {
+                    statusBadge.className = 'badge bg-success';
+                    statusBadge.innerText = 'DRIVER ACTIVE (LIVE)';
+                }
+                if (tripTypeLabel && data.trip_type) {
+                    tripTypeLabel.innerText = data.trip_type.replace('_', ' ');
+                }
+                tracker.updateBusLocation(busId, busCode, data.lat, data.lng, data.speed || 0, data.status, data.is_stale || false, data.last_updated_formatted || '', true);
+
+                if (etaDisplay) etaDisplay.innerText = data.delay_minutes > 0 ? `Delayed +${data.delay_minutes}m` : 'In Transit (Live GPS)';
+                if (etaSubtext) etaSubtext.innerText = `Updating from driver mobile (${data.last_updated_formatted || 'now'})`;
+            } else if (data.status === 'WAITING_GPS') {
+                if (statusBadge) {
+                    statusBadge.className = 'badge bg-info text-dark';
+                    statusBadge.innerText = 'DRIVER ACTIVE (CONNECTING GPS)';
+                }
+                tracker.updateBusLocation(busId, busCode, null, null, 0, 'WAITING_GPS', false, '', false);
+                if (etaDisplay) etaDisplay.innerText = 'Connecting Mobile GPS...';
+                if (etaSubtext) etaSubtext.innerText = 'Driver trip started. Awaiting GPS fix from mobile device.';
+            } else {
+                if (statusBadge) {
+                    statusBadge.className = 'badge bg-secondary';
+                    statusBadge.innerText = 'INACTIVE';
+                }
+                if (tripTypeLabel) {
+                    tripTypeLabel.innerText = 'DRIVER OFF-DUTY';
+                }
+                tracker.updateBusLocation(busId, busCode, null, null, 0, 'INACTIVE', false, '', false);
+                if (etaDisplay) etaDisplay.innerText = 'Awaiting Driver Activation';
+                if (etaSubtext) etaSubtext.innerText = 'Bus location appears on map when driver activates trip';
+            }
+
+            if (data.child_lat && data.child_lng) {
+                tracker.updateChildLocation(data.child_name || childInfo.name, data.child_lat, data.child_lng, data.child_status, data.child_status_label);
+            }
+
+            const speedElem = document.getElementById('bus-speed');
+            if (speedElem) speedElem.innerText = `${data.speed || 0} km/h`;
+
+            const delayElem = document.getElementById('bus-delay');
+            if (delayElem) {
+                if (data.delay_minutes > 0) {
+                    delayElem.className = 'fw-bold text-danger fs-6';
+                    delayElem.innerText = `+${data.delay_minutes} mins`;
+                } else {
+                    delayElem.className = 'fw-bold text-success fs-6';
+                    delayElem.innerText = `On Time`;
+                }
+            }
+        } catch (e) {
+            console.error("Error polling bus & child GPS:", e);
+        }
+    }
+
+    pollBusLocation();
+    setInterval(pollBusLocation, 4000);
+});
+</script>
+{% endblock %}
