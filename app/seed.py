@@ -138,6 +138,7 @@ def seed_database():
 
         print("Seeding Drivers & Official Vehicle Fleet...")
         d1 = Driver(
+            institution_id=inst_kbp.id,
             user_id=driver1_user.id,
             full_name='Ramesh Kumar',
             age=42,
@@ -152,6 +153,7 @@ def seed_database():
             assigned_route_id=r_a.id
         )
         d2 = Driver(
+            institution_id=inst_kbp.id,
             user_id=driver2_user.id,
             full_name='Suresh Yadav',
             age=38,
@@ -164,6 +166,7 @@ def seed_database():
             assigned_route_id=r_b.id
         )
         d3 = Driver(
+            institution_id=inst_kbp.id,
             user_id=driver3_user.id,
             full_name='Mahesh Patil',
             age=45,
@@ -320,6 +323,7 @@ def seed_database():
         db.session.flush()
 
         driver_stx = Driver(
+            institution_id=inst_stx.id,
             user_id=driver_stx_u.id,
             full_name='Joseph D\'Souza',
             phone='+91 98765 99881',
