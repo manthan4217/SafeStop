@@ -3,7 +3,12 @@
 set -o errexit
 
 pip install -r requirements.txt
-# Check if DB needs setup or just migration
-flask db upgrade || echo "Migrations failed. Ensure DB is properly initialized."
-python run.py init-db || echo "Skipping init-db (tables may already exist)."
+
+# Reset the database completely to clear corrupted tables
+# We downgrade to base to wipe everything, then upgrade back to head
+flask db downgrade base || echo "Downgrade failed, moving on..."
+flask db upgrade
+
+# Re-seed the clean database
+python run.py init-db || echo "Skipping init-db"
 python run.py seed-db
