@@ -3,5 +3,5 @@
 set -o errexit
 
 pip install -r requirements.txt
-python run.py init-db
+flask db upgrade
 python run.py seed-db

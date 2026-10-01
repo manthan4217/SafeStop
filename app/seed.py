@@ -11,10 +11,14 @@ from app.models import (
 def seed_database():
     app = create_app()
     with app.app_context():
-        print("Cleaning up old database tables...")
-        db.drop_all()
-        db.create_all()
-        print("Database schema created successfully.")
+        # Do NOT use db.drop_all() -> db.create_all() here.
+        # Render/Alembic migrations will handle schema creation.
+        print("Bypassing manual table drop/create for production environment.")
+
+        # Check if already seeded to prevent duplication
+        if Institution.query.count() > 0:
+            print("Database already seeded. Skipping.")
+            return
 
         print("Seeding Multi-Tenant Institutions...")
         inst_kbp = Institution(
