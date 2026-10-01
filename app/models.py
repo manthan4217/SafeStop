@@ -116,7 +116,7 @@ class Student(BaseModel):
     institution_id = db.Column(db.Integer, db.ForeignKey('institutions.id'), nullable=False, index=True, default=1)
     full_name = db.Column(db.String(100), nullable=False)
     roll_number = db.Column(db.String(30), unique=True, nullable=False, index=True)
-    grade_section = db.Column(db.String(30), nullable=True)
+    grade_section = db.Column(db.String(100), nullable=True)
     gender = db.Column(db.String(10), nullable=True)
     date_of_birth = db.Column(db.String(20), nullable=True)
     parent_id = db.Column(db.Integer, db.ForeignKey('parents.id'), nullable=True, index=True)
