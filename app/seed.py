@@ -94,7 +94,7 @@ def seed_database():
         db.session.flush()
 
         for u, address, phone, rel in parent_users:
-            p = Parent(user_id=u.id, address=address, emergency_contact=phone, relationship=rel)
+            p = Parent(institution_id=inst_kbp.id, user_id=u.id, address=address, emergency_contact=phone, relationship=rel)
             db.session.add(p)
             parent_models.append(p)
 
@@ -340,7 +340,7 @@ def seed_database():
         db.session.add(parent_stx_u)
         db.session.flush()
 
-        parent_stx = Parent(user_id=parent_stx_u.id, address='Seawoods, Navi Mumbai')
+        parent_stx = Parent(institution_id=inst_stx.id, user_id=parent_stx_u.id, address='Seawoods, Navi Mumbai')
         db.session.add(parent_stx)
         db.session.flush()
 
