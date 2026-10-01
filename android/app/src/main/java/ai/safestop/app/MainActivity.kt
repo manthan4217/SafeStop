@@ -52,7 +52,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Default URL points to SafeStop server
-        val targetUrl = intent.getStringExtra("SERVER_URL") ?: "http://192.168.1.41:5000"
+        val targetUrl = intent.getStringExtra("SERVER_URL") ?: "https://safestop.onrender.com"
         webView.loadUrl(targetUrl)
     }
 
